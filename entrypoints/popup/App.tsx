@@ -1,12 +1,17 @@
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { ChatInterface } from '@/components/ChatInterface';
+import { SettingsInterface } from '@/components/SettingsInterface';
 
 function App() {
+  const [view, setView] = useState<'chat' | 'settings'>('chat');
+
   return (
-    <div className='w-[320px] bg-transparent p-4 flex flex-col items-center gap-4'>
-      <h1 className='text-2xl font-bold'>Popup</h1>
-      <Button className='w-full' onClick={() => alert('Button clicked!')}>
-        Click me
-      </Button>
+    <div className='w-[400px] h-[600px] bg-background'>
+      {view === 'chat' ? (
+        <ChatInterface onSettings={() => setView('settings')} />
+      ) : (
+        <SettingsInterface onBack={() => setView('chat')} />
+      )}
     </div>
   );
 }

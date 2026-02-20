@@ -13,7 +13,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   content: 'コンテンツ取得',
   interaction: 'ページ操作',
   screenshot: 'スクリーンショット',
-  download: 'ダウンロード'
+  download: 'ダウンロード',
+  tab: 'タブ管理'
 };
 
 export function SettingsInterface({ onBack }: { onBack: () => void }) {

@@ -10,7 +10,7 @@ export interface ToolMeta {
   /** Short description shown in Settings */
   description: string;
   /** Category for grouping in Settings UI */
-  category: 'navigation' | 'content' | 'interaction' | 'screenshot' | 'download';
+  category: 'navigation' | 'content' | 'interaction' | 'screenshot' | 'download' | 'tab';
 }
 
 export const BROWSER_TOOL_META: ToolMeta[] = [
@@ -109,11 +109,30 @@ export const BROWSER_TOOL_META: ToolMeta[] = [
     description: '指定URLのファイルをダウンロードします。',
     category: 'download'
   },
+  // Tab Management
   {
-    name: 'browser_download_page_as_html',
-    label: 'ページをHTMLで保存',
-    description: '現在のページのHTMLをファイルとして保存します。',
-    category: 'download'
+    name: 'browser_list_tabs',
+    label: 'タブ一覧の取得',
+    description: '現在のウィンドウの全タブ一覧（ID・タイトル・URL）を返します。',
+    category: 'tab'
+  },
+  {
+    name: 'browser_open_tab',
+    label: '新しいタブを開く',
+    description: '新規タブを開き、必要に応じてURLへ乗移します。',
+    category: 'tab'
+  },
+  {
+    name: 'browser_close_tab',
+    label: 'タブを閉じる',
+    description: '指定IDのタブを閉じます。省略時はアクティブタブを閉じます。',
+    category: 'tab'
+  },
+  {
+    name: 'browser_switch_tab',
+    label: 'タブの切り替え',
+    description: '指定IDのタブをアクティブに切り替えます。',
+    category: 'tab'
   }
 ];
 

@@ -51,9 +51,16 @@ export default defineBackground(() => {
 
           // Helper to get the last message content
           const lastMessage = result.messages[result.messages.length - 1];
+
+          // Retrieve screenshot data URL if captured during this turn (stored by browser_screenshot tool)
+          const stored = await chrome.storage.local.get('lastScreenshotDataUrl');
+          const screenshotDataUrl = stored.lastScreenshotDataUrl ?? null;
+          if (screenshotDataUrl) await chrome.storage.local.remove('lastScreenshotDataUrl');
+
           sendResponse({
             response: lastMessage.content,
-            threadId: config.configurable.thread_id
+            threadId: config.configurable.thread_id,
+            screenshotDataUrl
           });
         } catch (error: any) {
           console.error('Agent execution error:', error);

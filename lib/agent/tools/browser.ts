@@ -135,12 +135,12 @@ export const createBrowserTools = () => {
         const tabId = await getActiveTabId();
         const results = await chrome.scripting.executeScript({
           target: { tabId },
-          func: (sel?: string) => {
+          func: (sel: string | null) => {
             const el = sel ? document.querySelector(sel) : document.body;
             if (!el) return `Element not found: ${sel}`;
             return (el as HTMLElement).innerText?.trim() ?? '';
           },
-          args: [selector]
+          args: [selector ?? null]
         });
         const text = String(results?.[0]?.result ?? '');
         return text.length > 8000 ? text.slice(0, 8000) + '\n...[truncated]' : text;
@@ -158,7 +158,7 @@ export const createBrowserTools = () => {
         const tabId = await getActiveTabId();
         const results = await chrome.scripting.executeScript({
           target: { tabId },
-          func: (sel?: string) => {
+          func: (sel: string | null) => {
             const root = sel ? document.querySelector(sel) : document;
             if (!root) return '[]';
             const anchors = Array.from((root as Element).querySelectorAll('a[href]'));
@@ -169,7 +169,7 @@ export const createBrowserTools = () => {
                 .slice(0, 100)
             );
           },
-          args: [selector]
+          args: [selector ?? null]
         });
         return String(results?.[0]?.result ?? '[]');
       }
@@ -186,12 +186,12 @@ export const createBrowserTools = () => {
         const tabId = await getActiveTabId();
         const results = await chrome.scripting.executeScript({
           target: { tabId },
-          func: (sel?: string) => {
+          func: (sel: string | null) => {
             const el = sel ? document.querySelector(sel) : document.documentElement;
             if (!el) return `Element not found: ${sel}`;
             return el.outerHTML;
           },
-          args: [selector]
+          args: [selector ?? null]
         });
         const html = String(results?.[0]?.result ?? '');
         return html.length > 8000 ? html.slice(0, 8000) + '\n...[truncated]' : html;
@@ -316,12 +316,14 @@ export const createBrowserTools = () => {
     new DynamicStructuredTool({
       name: 'browser_screenshot',
       description:
-        'Capture a screenshot of the visible area of the current page. Returns a base64-encoded PNG for visual understanding of the current page state.',
+        'Capture a screenshot of the visible area of the current page. The screenshot will be displayed as a preview in the chat UI.',
       schema: z.object({}),
       func: async () => {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId!, { format: 'png' });
-        return dataUrl;
+        // LLMのコンテキストに包めず、ストレージに一時保存してUIでプレビューする
+        await chrome.storage.local.set({ lastScreenshotDataUrl: dataUrl });
+        return `Screenshot captured (${tab.title ?? tab.url}). A preview will appear in the chat.`;
       }
     }),
 
@@ -343,23 +345,63 @@ export const createBrowserTools = () => {
       }
     }),
 
+    // =========================================================
+    // Tab Management
+    // =========================================================
     new DynamicStructuredTool({
-      name: 'browser_download_page_as_html',
-      description: 'Save the current page HTML as a local file.',
+      name: 'browser_list_tabs',
+      description: 'List all open tabs in the current window. Returns id, title, url, and active status for each tab.',
+      schema: z.object({}),
+      func: async () => {
+        const tabs = await chrome.tabs.query({ currentWindow: true });
+        const result = tabs.map((t) => ({
+          id: t.id,
+          title: t.title,
+          url: t.url,
+          active: t.active,
+          index: t.index
+        }));
+        return JSON.stringify(result);
+      }
+    }),
+
+    new DynamicStructuredTool({
+      name: 'browser_open_tab',
+      description: 'Open a new browser tab. Optionally navigate to a URL immediately.',
       schema: z.object({
-        filename: z.string().optional().describe('Filename to save as. Defaults to "page.html".')
+        url: z.string().optional().describe('URL to open in the new tab. Defaults to the new-tab page.')
       }),
-      func: async ({ filename = 'page.html' }) => {
-        const tabId = await getActiveTabId();
-        const results = await chrome.scripting.executeScript({
-          target: { tabId },
-          func: () => document.documentElement.outerHTML
-        });
-        const html = String(results?.[0]?.result ?? '');
-        const blob = new Blob([html], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const downloadId = await chrome.downloads.download({ url, filename });
-        return `Page HTML download started with ID: ${downloadId}.`;
+      func: async ({ url }) => {
+        const tab = await chrome.tabs.create({ url, active: true });
+        if (url) await waitForLoad(tab.id!);
+        const updated = await chrome.tabs.get(tab.id!);
+        return JSON.stringify({ id: updated.id, title: updated.title, url: updated.url });
+      }
+    }),
+
+    new DynamicStructuredTool({
+      name: 'browser_close_tab',
+      description: 'Close a browser tab by its ID. If no ID is given, closes the current active tab.',
+      schema: z.object({
+        tabId: z.number().optional().describe('ID of the tab to close. Defaults to the active tab.')
+      }),
+      func: async ({ tabId }) => {
+        const id = tabId ?? (await getActiveTabId());
+        await chrome.tabs.remove(id);
+        return `Tab ${id} closed.`;
+      }
+    }),
+
+    new DynamicStructuredTool({
+      name: 'browser_switch_tab',
+      description: 'Switch to a specific tab by its ID, making it the active tab.',
+      schema: z.object({
+        tabId: z.number().describe('ID of the tab to switch to. Use browser_list_tabs to find tab IDs.')
+      }),
+      func: async ({ tabId }) => {
+        await chrome.tabs.update(tabId, { active: true });
+        const tab = await chrome.tabs.get(tabId);
+        return JSON.stringify({ id: tab.id, title: tab.title, url: tab.url });
       }
     })
   ];

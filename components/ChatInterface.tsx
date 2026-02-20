@@ -92,18 +92,29 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
                   {msg.role === 'user' ? <User className='w-4 h-4' /> : <Bot className='w-4 h-4' />}
                 </AvatarFallback>
               </Avatar>
-              <div
-                className={clsx(
-                  'rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words',
-                  msg.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : msg.role === 'error'
-                      ? 'bg-destructive/10 text-destructive border border-destructive/20'
-                      : 'bg-muted text-foreground'
-                )}
-              >
-                {msg.content}
-              </div>
+              {msg.type === 'image' ? (
+                <button
+                  className='block rounded-lg overflow-hidden border shadow-sm hover:opacity-90 transition-opacity cursor-zoom-in max-w-full text-left'
+                  onClick={() => chrome.tabs.create({ url: msg.content })}
+                  title='クリックで原寸表示'
+                  type='button'
+                >
+                  <img alt='Screenshot' className='max-w-full block' src={msg.content} />
+                </button>
+              ) : (
+                <div
+                  className={clsx(
+                    'rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words',
+                    msg.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : msg.role === 'error'
+                        ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                        : 'bg-muted text-foreground'
+                  )}
+                >
+                  {msg.content}
+                </div>
+              )}
             </div>
           ))}
 

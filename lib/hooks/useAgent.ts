@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 export interface Message {
   role: 'user' | 'assistant' | 'error';
   content: string;
+  type?: 'text' | 'image';
 }
 
 export function useAgent() {
@@ -78,7 +79,13 @@ export function useAgent() {
         if (response.error) {
           setMessages((prev) => [...prev, { role: 'error', content: response.error }]);
         } else {
-          setMessages((prev) => [...prev, { role: 'assistant', content: response.response }]);
+          const content: string = response.response ?? '';
+          const nextMessages: Message[] = [{ role: 'assistant', content, type: 'text' }];
+          // スクリーンショットはLLMコンテキストと分離してUIのみに表示
+          if (response.screenshotDataUrl) {
+            nextMessages.push({ role: 'assistant', content: response.screenshotDataUrl, type: 'image' });
+          }
+          setMessages((prev) => [...prev, ...nextMessages]);
           if (response.threadId) {
             setThreadId(response.threadId);
           }

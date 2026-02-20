@@ -40,6 +40,9 @@ export default defineBackground(() => {
         const { message, threadId } = request;
         const config = { configurable: { thread_id: threadId || uuidv4() } };
 
+        // Save as active thread
+        await chrome.storage.local.set({ lastActiveThreadId: config.configurable.thread_id });
+
         try {
           const result = await agentExecutor.invoke({ messages: [message] }, config);
 
@@ -53,6 +56,64 @@ export default defineBackground(() => {
           console.error('Agent execution error:', error);
           sendResponse({ error: error.message });
         }
+      }
+
+      if (request.type === 'get_threads') {
+        try {
+          // We need access to the checkpointer.
+          // Since we created it inside createLangGraphAgent, we might need to expose it or re-instantiate it cleanly.
+          // For now, we'll instantiate a fresh checkpointer to read storage,
+          // as ChromeStorageCheckpointer is stateless regarding the connection (just uses chrome.storage).
+          const { ChromeStorageCheckpointer } = await import('@/lib/agent/checkpointer');
+          const checkpointer = new ChromeStorageCheckpointer();
+          const threads = await checkpointer.getAllThreads();
+          sendResponse({ threads });
+        } catch (error: any) {
+          console.error('Failed to get threads:', error);
+          sendResponse({ error: error.message });
+        }
+      }
+
+      if (request.type === 'get_thread_history') {
+        const { threadId } = request;
+        if (!agentExecutor) await initAgent();
+
+        if (agentExecutor) {
+          try {
+            const config = { configurable: { thread_id: threadId } };
+            const state = await agentExecutor.getState(config);
+            // Extract messages from state
+            const rawMessages = state.values.messages || [];
+            // Explicitly serialize to ensure 'type' is preserved (getters might be lost in message passing)
+            const messages = rawMessages.map((m: any) => ({
+              type:
+                (typeof m.getType === 'function' ? m.getType() : m.type) || (m.id?.includes('Human') ? 'human' : 'ai'),
+              content: m.content,
+              id: m.id,
+              name: m.name
+            }));
+            sendResponse({ messages });
+          } catch (error: any) {
+            console.error('Failed to get history:', error);
+            sendResponse({ error: error.message });
+          }
+        } else {
+          sendResponse({ error: 'Agent not initialized' });
+        }
+      }
+
+      if (request.type === 'delete_thread') {
+        const { threadId } = request;
+        const { ChromeStorageCheckpointer } = await import('@/lib/agent/checkpointer');
+        const checkpointer = new ChromeStorageCheckpointer();
+        await checkpointer.deleteThread(threadId);
+
+        // If deleting active thread, clear it
+        const data = await chrome.storage.local.get(['lastActiveThreadId']);
+        if (data.lastActiveThreadId === threadId) {
+          await chrome.storage.local.remove('lastActiveThreadId');
+        }
+        sendResponse({ success: true });
       }
     })();
     return true; // Keep channel open for async response

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface Message {
@@ -10,6 +10,55 @@ export function useAgent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [threadId, setThreadId] = useState<string>('');
+
+  // Load message history when threadId changes
+  useEffect(() => {
+    if (threadId) {
+      chrome.runtime
+        .sendMessage({
+          type: 'get_thread_history',
+          threadId
+        })
+        .then((response) => {
+          if (response.messages) {
+            console.log('Raw history messages:', response.messages);
+            // Verify format of messages from LangGraph state
+            const formattedMessages = response.messages
+              .map((m: any) => {
+                // Map LangChain types to UI roles
+                let role = 'user';
+                if (m.type === 'ai') role = 'assistant';
+                else if (m.type === 'human') role = 'user';
+                else if (m.type === 'tool') role = 'tool';
+
+                // Fallback based on ID if type is missing (handled in background, but just in case)
+                if (!m.type && m.id) {
+                  if (m.id.includes('AI')) role = 'assistant';
+                }
+
+                return {
+                  role,
+                  content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+                };
+              })
+              .filter((m: any) => m.role === 'user' || m.role === 'assistant');
+
+            setMessages(formattedMessages);
+          }
+        });
+    } else {
+      setMessages([]);
+    }
+  }, [threadId]);
+
+  // Initial load of last active thread
+  useEffect(() => {
+    chrome.storage.local.get(['lastActiveThreadId']).then((data) => {
+      if (data.lastActiveThreadId) {
+        setThreadId(data.lastActiveThreadId as string);
+      }
+    });
+  }, []);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -43,16 +92,17 @@ export function useAgent() {
     [threadId]
   );
 
-  const clearMessages = useCallback(() => {
+  const startNewThread = useCallback(() => {
+    setThreadId('');
     setMessages([]);
-    setThreadId(uuidv4()); // Start new thread
+    chrome.storage.local.remove('lastActiveThreadId');
   }, []);
 
   return {
     messages,
     isLoading,
     sendMessage,
-    clearMessages,
-    threadId
+    startNewThread,
+    setThreadId
   };
 }

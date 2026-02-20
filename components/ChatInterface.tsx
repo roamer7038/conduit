@@ -5,11 +5,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
-import { Settings, Send, Loader2, User, Bot } from 'lucide-react';
+import { Settings, Send, Loader2, User, Bot, History, Plus } from 'lucide-react';
 import clsx from 'clsx';
 
-export function ChatInterface({ onSettings }: { onSettings: () => void }) {
-  const { messages, isLoading, sendMessage, clearMessages } = useAgent();
+export function ChatInterface({ onSettings, onHistory }: { onSettings: () => void; onHistory: () => void }) {
+  const { messages, isLoading, sendMessage, startNewThread } = useAgent();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -39,11 +39,21 @@ export function ChatInterface({ onSettings }: { onSettings: () => void }) {
   return (
     <div className='flex flex-col h-full bg-background text-foreground'>
       {/* Header */}
-      <div className='flex items-center justify-between p-4 border-b'>
-        <h1 className='text-lg font-bold'>Browser Agent</h1>
-        <Button variant='ghost' size='icon' onClick={onSettings}>
-          <Settings className='w-5 h-5' />
-        </Button>
+      <div className='flex items-center justify-between p-4 border-b h-16 shrink-0'>
+        <div className='flex gap-1 w-20'>
+          <Button variant='ghost' size='icon' onClick={onHistory} title='History'>
+            <History className='w-5 h-5' />
+          </Button>
+          <Button variant='ghost' size='icon' onClick={startNewThread} title='New Chat'>
+            <Plus className='w-5 h-5' />
+          </Button>
+        </div>
+        <h1 className='text-lg font-bold truncate text-center flex-1'>Browser Agent</h1>
+        <div className='w-20 flex justify-end'>
+          <Button variant='ghost' size='icon' onClick={onSettings} title='Settings'>
+            <Settings className='w-5 h-5' />
+          </Button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -123,16 +133,7 @@ export function ChatInterface({ onSettings }: { onSettings: () => void }) {
             <Send className='w-4 h-4' />
           </Button>
         </div>
-        <div className='flex justify-start mt-2'>
-          <Button
-            variant='ghost'
-            size='sm'
-            onClick={clearMessages}
-            className='text-xs text-muted-foreground h-auto p-0 px-2'
-          >
-            Clear Chat
-          </Button>
-        </div>
+        <div className='flex justify-start mt-2'></div>
       </div>
     </div>
   );

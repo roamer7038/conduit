@@ -1,8 +1,9 @@
 import './style.css';
 
 export default defineContentScript({
-  matches: ['*://*.google.com/*'],
+  matches: ['*://*/*'],
   main() {
-    console.log('Hello WXT content.');
+    // Content script is intentionally minimal.
+    // Page interaction is handled via chrome.scripting.executeScript from the background script.
   }
 });

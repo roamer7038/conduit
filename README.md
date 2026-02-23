@@ -1,6 +1,6 @@
 # Browser Agent Extension
 
-ChromeとFirefoxに対応したAIエージェント拡張機能です。WXT、React 19、Shadcn UI、そしてLangGraphを活用し、ブラウザ上で動作する高度なAIアシスタントを提供します。
+Google Chrome向けAIエージェント拡張機能です。WXT、React 19、Shadcn UI、そしてLangGraphを活用し、ブラウザ上で動作する高度なAIアシスタントを提供します。
 
 ## 特徴
 
@@ -9,7 +9,6 @@ ChromeとFirefoxに対応したAIエージェント拡張機能です。WXT、Re
 - 🔌 **MCP (Model Context Protocol) 対応**: 外部のMCPサーバーと接続し、エージェントの機能を拡張できます。
 - 💾 **永続的な記憶**: Chrome Storageを利用して会話履歴やエージェントの状態を保存。
 - ⚛️ **モダンなUI**: React 19、Tailwind CSS 4、Shadcn UIによる美しく使いやすいインターフェース。
-- 🚀 **クロスブラウザ**: Chrome (MV3) と Firefox (MV3) の両方に対応。
 
 ## アーキテクチャ
 
@@ -50,24 +49,17 @@ pnpm install
 
 開発サーバーを起動すると、コードの変更が自動的にリロードされます。
 
-**Chromeでの開発:**
+**Google Chromeでの開発:**
 
 ```bash
 pnpm dev
 ```
 
-**Firefoxでの開発:**
-
-```bash
-pnpm dev:firefox
-```
-
-コマンド実行後、`.output/chrome-mv3` (または `.output/firefox-mv3`) ディレクトリが生成されます。これをブラウザに読み込ませてください。
+コマンド実行後、`.output/chrome-mv3` ディレクトリが生成されます。これをブラウザに読み込ませてください。
 
 #### ブラウザへの読み込み方法
 
 - **Chrome**: `chrome://extensions/` を開き、デベロッパーモードをオンにして「パッケージ化されていない拡張機能を読み込む」から `.output/chrome-mv3` を選択します。
-- **Firefox**: `about:debugging#/runtime/this-firefox` を開き、「一時的なアドオンを読み込む」から `.output/firefox-mv3/manifest.json` を選択します。
 
 ### 設定
 
@@ -83,7 +75,6 @@ pnpm dev:firefox
 
 ```bash
 pnpm build          # Chrome用
-pnpm build:firefox  # Firefox用
 ```
 
 ## パッケージング
@@ -92,7 +83,6 @@ pnpm build:firefox  # Firefox用
 
 ```bash
 pnpm zip          # Chrome用
-pnpm zip:firefox  # Firefox用
 ```
 
 ## 技術スタック

@@ -1,4 +1,6 @@
 import { createLangGraphAgent, AgentConfig } from '@/lib/agent/graph';
+import { testMcpConnection } from '@/lib/agent/tools/mcp';
+import { MCP_SERVERS_STORAGE_KEY, McpServerConfig } from '@/lib/agent/tools/mcp-types';
 import { v4 as uuidv4 } from 'uuid';
 
 export default defineBackground(() => {
@@ -23,7 +25,7 @@ export default defineBackground(() => {
 
   chrome.runtime.onInstalled.addListener(initAgent);
   chrome.storage.onChanged.addListener((changes) => {
-    if (changes.apiKey || changes.baseUrl || changes.modelName) {
+    if (changes.apiKey || changes.baseUrl || changes.modelName || changes[MCP_SERVERS_STORAGE_KEY]) {
       initAgent();
     }
   });
@@ -137,6 +139,16 @@ export default defineBackground(() => {
         // スレッドに紐づくスクリーンショットも削除
         await chrome.storage.local.remove(`screenshots_${threadId}`);
         sendResponse({ success: true });
+      }
+
+      if (request.type === 'test_mcp_connection') {
+        const server = request.server as McpServerConfig;
+        try {
+          const result = await testMcpConnection(server);
+          sendResponse(result);
+        } catch (error: any) {
+          sendResponse({ success: false, error: error.message });
+        }
       }
     })();
     return true; // Keep channel open for async response

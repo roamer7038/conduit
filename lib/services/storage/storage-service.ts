@@ -235,6 +235,11 @@ export class StorageService {
         if (server.headers) {
           const encryptedHeaders: Record<string, string> = {};
           for (const [key, value] of Object.entries(server.headers)) {
+            // 空文字列はそのまま保存
+            if (value === '') {
+              encryptedHeaders[key] = '';
+              continue;
+            }
             encryptedHeaders[key] = await CryptoService.encrypt(value);
           }
           return { ...server, headers: encryptedHeaders };
@@ -250,6 +255,11 @@ export class StorageService {
         if (server.headers) {
           const decryptedHeaders: Record<string, string> = {};
           for (const [key, value] of Object.entries(server.headers)) {
+            // 空文字列はそのまま
+            if (value === '') {
+              decryptedHeaders[key] = '';
+              continue;
+            }
             decryptedHeaders[key] = await CryptoService.decrypt(value);
           }
           return { ...server, headers: decryptedHeaders };

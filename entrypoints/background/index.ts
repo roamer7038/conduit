@@ -32,18 +32,29 @@ export default defineBackground(() => {
   };
 
   chrome.runtime.onInstalled.addListener(async () => {
-    // CryptoServiceを初期化
-    await CryptoService.initialize();
-    console.log('[Background] Crypto service initialized');
+    try {
+      // CryptoServiceを初期化
+      await CryptoService.initialize();
+      console.log('[Background] Crypto service initialized (onInstalled)');
 
-    // 既存のエージェント初期化
-    await initAgent();
+      // 既存のエージェント初期化
+      await initAgent();
+    } catch (error) {
+      console.error('[Background] Initialization failed (onInstalled):', error);
+    }
   });
 
   chrome.runtime.onStartup.addListener(async () => {
-    // CryptoServiceを初期化
-    await CryptoService.initialize();
-    console.log('[Background] Crypto service initialized on startup');
+    try {
+      // CryptoServiceを初期化
+      await CryptoService.initialize();
+      console.log('[Background] Crypto service initialized (onStartup)');
+
+      // エージェント初期化も追加
+      await initAgent();
+    } catch (error) {
+      console.error('[Background] Initialization failed (onStartup):', error);
+    }
   });
 
   chrome.storage.onChanged.addListener((changes) => {

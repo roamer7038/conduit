@@ -90,8 +90,7 @@ export class CryptoService {
       return `${this.PREFIX}${base64}`;
     } catch (error) {
       console.error('[CryptoService] Encryption failed:', error);
-      // フォールバック: 平文を返す
-      return plaintext;
+      throw new Error(`Failed to encrypt data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -138,8 +137,7 @@ export class CryptoService {
       return plaintext;
     } catch (error) {
       console.error('[CryptoService] Decryption failed:', error);
-      // 復号化失敗時は空文字列を返す
-      return '';
+      throw new Error(`Failed to decrypt data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

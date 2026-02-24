@@ -329,7 +329,8 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
                 onChange={(e) => setBaseUrl(e.target.value)}
               />
               <p className='text-xs text-muted-foreground'>
-                For OpenAI Compatible providers (e.g. LocalAI, vLLM). Leave empty for default OpenAI.
+                OpenAI互換プロバイダ用のエンドポイントを指定します（例:
+                OpenRouter、Ollama）。OpenAIを使用する場合は空のままにしてください。
               </p>
             </div>
             <div className='space-y-2'>
@@ -379,7 +380,7 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
                 </Button>
               </div>
               <p className='text-xs text-muted-foreground'>
-                リストから選択するか、カスタムモデル名を入力してください。Default: gpt-5
+                設定保存後に更新ボタンをクリックすると、利用可能なモデル一覧を取得できます。
               </p>
             </div>
           </CardContent>
@@ -394,7 +395,7 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
         {/* MCP Server Settings */}
         <Card>
           <CardHeader className='flex flex-row items-center justify-between'>
-            <CardTitle>外部MCPサーバー</CardTitle>
+            <CardTitle>外部MCPサーバ</CardTitle>
             <Button size='sm' variant='outline' onClick={openAddDialog}>
               <Plus className='w-4 h-4 mr-1' />
               追加
@@ -402,7 +403,7 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
           </CardHeader>
           <CardContent className='space-y-3'>
             {mcpServers.length === 0 ? (
-              <p className='text-sm text-muted-foreground text-center py-4'>MCPサーバーが登録されていません</p>
+              <p className='text-sm text-muted-foreground text-center py-4'>MCPサーバが登録されていません</p>
             ) : (
               mcpServers.map((server) => (
                 <div key={server.id} className='border rounded-lg p-3 space-y-2'>
@@ -466,8 +467,8 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
         <Dialog open={mcpDialogOpen} onOpenChange={setMcpDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingServerId ? 'MCPサーバーを編集' : 'MCPサーバーを追加'}</DialogTitle>
-              <DialogDescription>リモートMCPサーバーの接続情報を入力してください。</DialogDescription>
+              <DialogTitle>{editingServerId ? 'MCPサーバを編集' : 'MCPサーバを追加'}</DialogTitle>
+              <DialogDescription>リモートMCPサーバの接続情報を入力してください。</DialogDescription>
             </DialogHeader>
 
             <div className='space-y-4'>
@@ -511,14 +512,14 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
 
               <div className='space-y-2'>
                 <div className='flex items-center justify-between'>
-                  <Label>ヘッダー</Label>
+                  <Label>ヘッダ</Label>
                   <Button size='sm' type='button' variant='ghost' onClick={addHeaderRow}>
                     <Plus className='w-3 h-3 mr-1' />
                     追加
                   </Button>
                 </div>
                 {mcpForm.headers.length === 0 ? (
-                  <p className='text-xs text-muted-foreground'>ヘッダーなし</p>
+                  <p className='text-xs text-muted-foreground'>ヘッダなし</p>
                 ) : (
                   mcpForm.headers.map((header, idx) => (
                     <div key={idx} className='flex items-center gap-2'>

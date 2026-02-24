@@ -7,8 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Settings, Send, Loader2, User, Bot, History, Plus, ChevronsUp, ChevronsDown } from 'lucide-react';
 import clsx from 'clsx';
-import { SidePanelHeader } from '@/components/side-panel-header';
-import { SidePanelLayout } from '@/components/side-panel-layout';
+import { SidePanelHeader } from '@/components/layouts/side-panel-header';
+import { SidePanelLayout } from '@/components/layouts/side-panel-layout';
 
 export function ChatInterface({ onSettings, onHistory }: { onSettings: () => void; onHistory: () => void }) {
   const { messages, isLoading, sendMessage, startNewThread } = useAgent();

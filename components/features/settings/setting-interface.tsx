@@ -35,8 +35,9 @@ import {
   deleteMcpServer,
   saveMcpServers
 } from '@/lib/agent/tools/mcp-types';
-import { SidePanelHeader } from '@/components/side-panel-header';
-import { SidePanelLayout } from '@/components/side-panel-layout';
+import { SidePanelHeader } from '@/components/layouts/side-panel-header';
+import { SidePanelLayout } from '@/components/layouts/side-panel-layout';
+import { MessageBus } from '@/lib/services/message/message-bus';
 
 const CATEGORY_LABELS: Record<string, string> = {
   navigation: 'ナビゲーション',
@@ -128,17 +129,11 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
       }
 
       // Fetch from API via background script
-      const response = await chrome.runtime.sendMessage({ type: 'fetch_models' });
-
-      if (response.error) {
-        toast.error(`モデルリストの取得に失敗しました: ${response.error}`);
-        setAvailableModels([]);
-        return;
-      }
+      const models = await MessageBus.fetchModels();
 
       // Save to cache
-      await saveCacheWithMeta(response.models, apiKey, baseUrl || '');
-      setAvailableModels(response.models);
+      await saveCacheWithMeta(models, apiKey, baseUrl || '');
+      setAvailableModels(models);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       toast.error(`モデルリストの取得に失敗しました: ${message}`);
@@ -256,10 +251,7 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
     });
 
     try {
-      const result = await chrome.runtime.sendMessage({
-        type: 'test_mcp_connection',
-        server
-      });
+      const result = await MessageBus.testMcpConnection(server);
       setTestResults((prev) => ({
         ...prev,
         [server.id]: {

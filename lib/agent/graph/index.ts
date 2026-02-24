@@ -1,12 +1,12 @@
 import { createAgent } from 'langchain';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 
-import { ChromeStorageCheckpointer } from './checkpointer';
-import { createBrowserTools } from './tools/browser/index';
-import { createMcpTools } from './tools/mcp';
-import { getMcpServers } from './tools/mcp-types';
-import { LLMFactory } from './llm';
-import { getAllToolNames, TOOL_SETTINGS_STORAGE_KEY } from './tools/tool-meta';
+import { ChromeStorageCheckpointer } from '../checkpointer';
+import { createBrowserTools } from '../tools/browser/index';
+import { createMcpTools } from '../tools/mcp';
+import { getMcpServers } from '../tools/mcp-types';
+import { LLMFactory } from '../llm';
+import { getAllToolNames, TOOL_SETTINGS_STORAGE_KEY } from '../tools/tool-meta';
 
 export interface AgentConfig {
   apiKey: string;

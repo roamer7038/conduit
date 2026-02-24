@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Trash2, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
-import { SidePanelHeader } from '@/components/side-panel-header';
-import { SidePanelLayout } from '@/components/side-panel-layout';
+import { SidePanelHeader } from '@/components/layouts/side-panel-header';
+import { SidePanelLayout } from '@/components/layouts/side-panel-layout';
+import { MessageBus } from '@/lib/services/message/message-bus';
 
 interface Thread {
   id: string;
@@ -24,10 +25,8 @@ export function HistoryInterface({
   const loadThreads = async () => {
     setIsLoading(true);
     try {
-      const response = await chrome.runtime.sendMessage({ type: 'get_threads' });
-      if (response && response.threads) {
-        setThreads(response.threads);
-      }
+      const threads = await MessageBus.getThreads();
+      setThreads(threads);
     } catch (error) {
       console.error('Failed to load threads', error);
     } finally {
@@ -42,7 +41,7 @@ export function HistoryInterface({
   const handleDelete = async (threadId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm('Are you sure you want to delete this conversation?')) {
-      await chrome.runtime.sendMessage({ type: 'delete_thread', threadId });
+      await MessageBus.deleteThread(threadId);
       loadThreads();
     }
   };

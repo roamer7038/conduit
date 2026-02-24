@@ -22,7 +22,8 @@ import {
   ComboboxContent,
   ComboboxList,
   ComboboxItem,
-  ComboboxEmpty
+  ComboboxEmpty,
+  ComboboxCollection
 } from '@/components/ui/combobox';
 import { getCachedModels, saveCacheWithMeta, clearModelCache } from '@/lib/agent/model-cache';
 import { BROWSER_TOOL_META, TOOL_SETTINGS_STORAGE_KEY, getAllToolNames } from '@/lib/agent/tools/tool-meta';
@@ -343,14 +344,43 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
             </div>
             <div className='space-y-2'>
               <Label htmlFor='modelName'>Model Name</Label>
-              <Input
-                id='modelName'
-                placeholder='gpt-5'
-                type='text'
-                value={modelName}
-                onChange={(e) => setModelName(e.target.value)}
-              />
-              <p className='text-xs text-muted-foreground'>Default: gpt-5</p>
+              <div className='flex gap-2'>
+                <div className='flex-1'>
+                  <Combobox
+                    value={modelName}
+                    onValueChange={(value) => setModelName(value || '')}
+                    items={availableModels}
+                  >
+                    <ComboboxInput placeholder='モデルを検索または入力...' disabled={modelsLoading} showClear />
+                    <ComboboxContent>
+                      <ComboboxList>
+                        <ComboboxCollection>
+                          {(model) => (
+                            <ComboboxItem key={model} value={model}>
+                              {model}
+                            </ComboboxItem>
+                          )}
+                        </ComboboxCollection>
+                        <ComboboxEmpty>
+                          {modelsLoading ? 'モデルを読み込み中...' : 'モデルが見つかりません'}
+                        </ComboboxEmpty>
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </div>
+                <Button
+                  variant='outline'
+                  size='icon'
+                  onClick={handleRefreshModels}
+                  disabled={modelsLoading}
+                  title='モデルリストを更新'
+                >
+                  {modelsLoading ? <Loader2 className='w-4 h-4 animate-spin' /> : <RefreshCw className='w-4 h-4' />}
+                </Button>
+              </div>
+              <p className='text-xs text-muted-foreground'>
+                リストから選択するか、カスタムモデル名を入力してください。Default: gpt-5
+              </p>
             </div>
           </CardContent>
           <CardFooter>

@@ -14,7 +14,17 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowLeft, Plus, Pencil, Trash2, Wifi, WifiOff, X } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Pencil, Trash2, Wifi, WifiOff, X, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Combobox,
+  ComboboxInput,
+  ComboboxContent,
+  ComboboxList,
+  ComboboxItem,
+  ComboboxEmpty
+} from '@/components/ui/combobox';
+import { getCachedModels, saveCacheWithMeta, clearModelCache } from '@/lib/agent/model-cache';
 import { BROWSER_TOOL_META, TOOL_SETTINGS_STORAGE_KEY, getAllToolNames } from '@/lib/agent/tools/tool-meta';
 import {
   McpServerConfig,
@@ -89,6 +99,8 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
   const [mcpSaving, setMcpSaving] = useState(false);
   const [testingServerId, setTestingServerId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string }>>({});
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
 
   // Load settings
   useEffect(() => {

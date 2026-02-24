@@ -2,6 +2,7 @@ import { createLangGraphAgent, AgentConfig } from '@/lib/agent/graph';
 import { testMcpConnection } from '@/lib/agent/tools/mcp';
 import { MCP_SERVERS_STORAGE_KEY, McpServerConfig } from '@/lib/agent/tools/mcp-types';
 import { v4 as uuidv4 } from 'uuid';
+import { clearModelCache } from '@/lib/agent/model-cache';
 
 export default defineBackground(() => {
   // アイコンクリック時にサイドパネルを自動で開く
@@ -148,6 +149,57 @@ export default defineBackground(() => {
           sendResponse(result);
         } catch (error: any) {
           sendResponse({ success: false, error: error.message });
+        }
+      }
+
+      if (request.type === 'fetch_models') {
+        try {
+          const { apiKey, baseUrl } = await chrome.storage.local.get(['apiKey', 'baseUrl']);
+
+          if (!apiKey) {
+            sendResponse({ error: 'API Key is not configured' });
+            return;
+          }
+
+          const url = `${baseUrl || 'https://api.openai.com/v1'}/models`;
+
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+          }
+
+          const data = await response.json();
+
+          if (!data.data || !Array.isArray(data.data)) {
+            throw new Error('Invalid response format from API');
+          }
+
+          // Extract model IDs and sort alphabetically
+          const models = data.data
+            .map((m: any) => m.id)
+            .filter((id: string) => typeof id === 'string')
+            .sort();
+
+          sendResponse({ models });
+        } catch (error: any) {
+          console.error('Failed to fetch models:', error);
+          sendResponse({ error: error.message || 'Failed to fetch models' });
+        }
+      }
+
+      if (request.type === 'clear_model_cache') {
+        try {
+          await clearModelCache();
+          sendResponse({ success: true });
+        } catch (error: any) {
+          console.error('Failed to clear model cache:', error);
+          sendResponse({ error: error.message });
         }
       }
     })();

@@ -1,8 +1,31 @@
-// lib/utils/model-cache.ts
+// lib/agent/model-cache.ts
+
+// Cache keys as constants
+const CACHE_KEYS = {
+  MODEL_LIST: 'modelListCache',
+  META: 'modelListCacheMeta'
+} as const;
+
+// Cache expiry time: 24 hours
+const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
 export interface ModelListCacheMeta {
   apiKeyHash: string;
   baseUrl: string;
   timestamp: number;
+}
+
+/**
+ * Type guard for ModelListCacheMeta
+ */
+function isModelListCacheMeta(obj: any): obj is ModelListCacheMeta {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    typeof obj.apiKeyHash === 'string' &&
+    typeof obj.baseUrl === 'string' &&
+    typeof obj.timestamp === 'number'
+  );
 }
 
 /**
@@ -21,43 +44,74 @@ export async function hashApiKey(apiKey: string): Promise<string> {
  * Get cached models if cache is valid
  */
 export async function getCachedModels(apiKey: string, baseUrl: string): Promise<string[] | null> {
-  const data = await chrome.storage.local.get(['modelListCache', 'modelListCacheMeta']);
+  try {
+    const data = await chrome.storage.local.get([CACHE_KEYS.MODEL_LIST, CACHE_KEYS.META]);
 
-  if (!data.modelListCache || !data.modelListCacheMeta) {
+    if (!data[CACHE_KEYS.MODEL_LIST] || !data[CACHE_KEYS.META]) {
+      return null;
+    }
+
+    // Type guard validation
+    const metaData = data[CACHE_KEYS.META];
+    if (!isModelListCacheMeta(metaData)) {
+      return null;
+    }
+
+    // Check cache expiry
+    const isExpired = Date.now() - metaData.timestamp > CACHE_EXPIRY_MS;
+    if (isExpired) {
+      return null;
+    }
+
+    const currentHash = await hashApiKey(apiKey);
+
+    // Validate cache: check if API key and base URL match
+    if (metaData.apiKeyHash !== currentHash || metaData.baseUrl !== baseUrl) {
+      return null;
+    }
+
+    // Validate model list is an array
+    if (!Array.isArray(data[CACHE_KEYS.MODEL_LIST])) {
+      return null;
+    }
+
+    return data[CACHE_KEYS.MODEL_LIST] as string[];
+  } catch (error) {
+    console.error('Failed to get cached models:', error);
     return null;
   }
-
-  const meta = data.modelListCacheMeta as ModelListCacheMeta;
-  const currentHash = await hashApiKey(apiKey);
-
-  // Validate cache: check if API key and base URL match
-  if (meta.apiKeyHash !== currentHash || meta.baseUrl !== baseUrl) {
-    return null;
-  }
-
-  return data.modelListCache as string[];
 }
 
 /**
  * Save models to cache with metadata
  */
 export async function saveCacheWithMeta(models: string[], apiKey: string, baseUrl: string): Promise<void> {
-  const apiKeyHash = await hashApiKey(apiKey);
-  const timestamp = Date.now();
+  try {
+    const apiKeyHash = await hashApiKey(apiKey);
+    const timestamp = Date.now();
 
-  await chrome.storage.local.set({
-    modelListCache: models,
-    modelListCacheMeta: {
-      apiKeyHash,
-      baseUrl,
-      timestamp
-    }
-  });
+    await chrome.storage.local.set({
+      [CACHE_KEYS.MODEL_LIST]: models,
+      [CACHE_KEYS.META]: {
+        apiKeyHash,
+        baseUrl,
+        timestamp
+      }
+    });
+  } catch (error) {
+    console.error('Failed to save cache:', error);
+    throw error;
+  }
 }
 
 /**
  * Clear model cache
  */
 export async function clearModelCache(): Promise<void> {
-  await chrome.storage.local.remove(['modelListCache', 'modelListCacheMeta']);
+  try {
+    await chrome.storage.local.remove([CACHE_KEYS.MODEL_LIST, CACHE_KEYS.META]);
+  } catch (error) {
+    console.error('Failed to clear cache:', error);
+    throw error;
+  }
 }

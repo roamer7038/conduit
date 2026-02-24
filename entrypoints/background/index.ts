@@ -4,6 +4,7 @@ import { createLangGraphAgent } from '@/lib/agent/graph';
 import { MCP_SERVERS_STORAGE_KEY } from '@/lib/agent/tools/mcp-types';
 import { StorageService } from '@/lib/services/storage/storage-service';
 import { STORAGE_KEYS } from '@/lib/services/storage/storage-keys';
+import { CryptoService } from '@/lib/services/crypto/crypto-service';
 import { handleChatMessage } from './handlers/chat-handler';
 import { handleGetThreads, handleGetThreadHistory, handleDeleteThread } from './handlers/thread-handler';
 import { handleTestMcpConnection } from './handlers/mcp-handler';
@@ -30,7 +31,21 @@ export default defineBackground(() => {
     }
   };
 
-  chrome.runtime.onInstalled.addListener(initAgent);
+  chrome.runtime.onInstalled.addListener(async () => {
+    // CryptoServiceを初期化
+    await CryptoService.initialize();
+    console.log('[Background] Crypto service initialized');
+
+    // 既存のエージェント初期化
+    await initAgent();
+  });
+
+  chrome.runtime.onStartup.addListener(async () => {
+    // CryptoServiceを初期化
+    await CryptoService.initialize();
+    console.log('[Background] Crypto service initialized on startup');
+  });
+
   chrome.storage.onChanged.addListener((changes) => {
     if (
       changes[STORAGE_KEYS.API_KEY] ||

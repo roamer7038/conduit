@@ -4,11 +4,12 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { useAgent } from '@/hooks/use-agent';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Settings, Send, Loader2, User, Bot, History, Plus, ChevronsUp, ChevronsDown } from 'lucide-react';
 import clsx from 'clsx';
 import { SidePanelHeader } from '@/components/layouts/side-panel-header';
 import { SidePanelLayout } from '@/components/layouts/side-panel-layout';
+import { MarkdownRenderer } from './markdown-renderer';
 
 export function ChatInterface({ onSettings, onHistory }: { onSettings: () => void; onHistory: () => void }) {
   const { messages, isLoading, sendMessage, startNewThread } = useAgent();
@@ -87,51 +88,94 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
             </div>
           )}
 
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={clsx('flex gap-3 max-w-[90%]', msg.role === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto')}
-            >
-              <Avatar className='w-8 h-8 shrink-0'>
-                <AvatarFallback>
-                  {msg.role === 'user' ? <User className='w-4 h-4' /> : <Bot className='w-4 h-4' />}
-                </AvatarFallback>
-              </Avatar>
-              {msg.type === 'image' ? (
-                <button
-                  className='block rounded-lg overflow-hidden border shadow-sm hover:opacity-90 transition-opacity cursor-zoom-in max-w-full text-left'
-                  onClick={() => chrome.tabs.create({ url: msg.content })}
-                  title='クリックで原寸表示'
-                  type='button'
-                >
-                  <img alt='Screenshot' className='max-w-full block' src={msg.content} />
-                </button>
-              ) : (
+          {messages.map((msg, idx) => {
+            if (msg.role === 'user') {
+              return (
+                <div key={idx} className='flex justify-end mb-4'>
+                  <div className='bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2 max-w-[85%] text-sm whitespace-pre-wrap break-words'>
+                    {msg.content}
+                  </div>
+                </div>
+              );
+            }
+
+            if (msg.type === 'image') {
+              return (
+                <div key={idx} className='flex justify-start mb-4'>
+                  <button
+                    className='block rounded-lg overflow-hidden border shadow-sm hover:opacity-90 transition-opacity cursor-zoom-in max-w-[85%] text-left'
+                    onClick={() => chrome.tabs.create({ url: msg.content })}
+                    title='クリックで原寸表示'
+                    type='button'
+                  >
+                    <img alt='Screenshot' className='max-w-full block' src={msg.content} />
+                  </button>
+                </div>
+              );
+            }
+
+            if (msg.role === 'reasoning') {
+              return (
+                <div key={idx} className='flex justify-start mb-4 w-full'>
+                  <Accordion type='single' collapsible className='w-full max-w-[95%]'>
+                    <AccordionItem value={`reasoning-${idx}`} className='border rounded-md bg-muted/30 px-3'>
+                      <AccordionTrigger className='py-2 text-xs text-muted-foreground hover:no-underline'>
+                        <span className='flex items-center gap-2'>
+                          <Bot className='w-3 h-3' />
+                          Thinking Process
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent className='text-xs text-muted-foreground whitespace-pre-wrap break-words font-mono'>
+                        {msg.content}
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </div>
+              );
+            }
+
+            if (msg.role === 'tool') {
+              return (
+                <div key={idx} className='flex justify-start mb-4 w-full'>
+                  <Accordion type='single' collapsible className='w-full max-w-[95%]'>
+                    <AccordionItem value={`tool-${idx}`} className='border rounded-md bg-muted/30 px-3'>
+                      <AccordionTrigger className='py-2 text-xs text-muted-foreground hover:no-underline'>
+                        <span className='flex items-center gap-2'>
+                          <Settings className='w-3 h-3' />
+                          {msg.type === 'tool_result' ? `Tool Result: ${msg.name}` : `Tool Use: ${msg.name}`}
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent className='text-xs text-muted-foreground whitespace-pre-wrap break-all font-mono'>
+                        {msg.content}
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </div>
+              );
+            }
+
+            return (
+              <div key={idx} className='flex justify-start mb-4 w-full'>
                 <div
                   className={clsx(
-                    'rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words',
-                    msg.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : msg.role === 'error'
-                        ? 'bg-destructive/10 text-destructive border border-destructive/20'
-                        : 'bg-muted text-foreground'
+                    'text-sm w-full max-w-[95%]',
+                    msg.role === 'error'
+                      ? 'bg-destructive/10 text-destructive border border-destructive/20 rounded-md p-3 whitespace-pre-wrap'
+                      : 'text-foreground'
                   )}
+                  style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                 >
-                  {msg.content}
+                  {msg.role === 'error' ? msg.content : <MarkdownRenderer content={msg.content} />}
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
 
           {isLoading && (
-            <div className='flex gap-3 mr-auto max-w-[90%]'>
-              <Avatar className='w-8 h-8 shrink-0'>
-                <AvatarFallback>
-                  <Bot className='w-4 h-4' />
-                </AvatarFallback>
-              </Avatar>
-              <div className='bg-muted rounded-lg p-3'>
+            <div className='flex justify-start mb-4 w-full'>
+              <div className='flex items-center gap-2 text-muted-foreground text-sm'>
                 <Loader2 className='w-4 h-4 animate-spin' />
+                Agent is thinking...
               </div>
             </div>
           )}

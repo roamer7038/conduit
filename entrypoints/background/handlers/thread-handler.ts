@@ -20,7 +20,9 @@ export async function handleGetThreadHistory(threadId: string, agentExecutor: an
     type: (typeof m.getType === 'function' ? m.getType() : m.type) || (m.id?.includes('Human') ? 'human' : 'ai'),
     content: m.content,
     id: m.id,
-    name: m.name
+    name: m.name,
+    tool_calls: m.tool_calls || [],
+    additional_kwargs: m.additional_kwargs || {}
   }));
 
   // Get screenshots for this thread

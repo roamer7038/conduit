@@ -20,4 +20,6 @@ export interface ChatMessageResponse {
   response: string;
   threadId: string;
   screenshotDataUrl?: string;
+  messages?: any[];
+  screenshots?: string[];
 }

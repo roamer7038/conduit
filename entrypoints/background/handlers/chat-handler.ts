@@ -28,8 +28,23 @@ export async function handleChatMessage(
     await StorageService.removeLastScreenshotDataUrl();
   }
 
+  // Generate mapped messages
+  const rawMessages = result.messages || [];
+  const messages = rawMessages.map((m: any) => ({
+    type: (typeof m.getType === 'function' ? m.getType() : m.type) || (m.id?.includes('Human') ? 'human' : 'ai'),
+    content: m.content,
+    id: m.id,
+    name: m.name,
+    tool_calls: m.tool_calls || [],
+    additional_kwargs: m.additional_kwargs || {}
+  }));
+
+  const screenshots = await StorageService.getScreenshots(config.configurable.thread_id);
+
   return {
     response: lastMessage.content,
+    messages,
+    screenshots,
     threadId: config.configurable.thread_id,
     screenshotDataUrl: screenshotDataUrl || undefined
   };

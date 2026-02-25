@@ -2,9 +2,53 @@ import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface Message {
-  role: 'user' | 'assistant' | 'error';
+  role: 'user' | 'assistant' | 'error' | 'tool' | 'reasoning';
   content: string;
-  type?: 'text' | 'image';
+  type?: 'text' | 'image' | 'tool_call' | 'tool_result' | 'reasoning';
+  name?: string;
+}
+
+function parseMessages(rawMessages: any[]): Message[] {
+  return rawMessages.flatMap((m: any) => {
+    const msgs: Message[] = [];
+    const msgType =
+      (typeof m.getType === 'function' ? m.getType() : m.type) ||
+      (m.id?.includes('AI') ? 'ai' : m.id?.includes('Human') ? 'human' : null);
+
+    if (msgType === 'human') {
+      const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+      msgs.push({ role: 'user', content, type: 'text' });
+    } else if (msgType === 'ai') {
+      if (m.additional_kwargs?.reasoning_content) {
+        msgs.push({ role: 'reasoning', content: m.additional_kwargs.reasoning_content, type: 'reasoning' });
+      }
+      if (m.tool_calls && m.tool_calls.length > 0) {
+        m.tool_calls.forEach((tc: any) => {
+          msgs.push({ role: 'tool', content: JSON.stringify(tc.args), name: tc.name, type: 'tool_call' });
+        });
+      }
+      const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+      if (content && content.trim() && content !== '""' && content !== '{}') {
+        msgs.push({ role: 'assistant', content, type: 'text' });
+      }
+    } else if (msgType === 'tool') {
+      const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+      msgs.push({ role: 'tool', content, name: m.name, type: 'tool_result' });
+    }
+    return msgs;
+  });
+}
+
+function getFinalMessages(response: any): Message[] {
+  if (!response.messages) return [];
+  const formattedMessages = parseMessages(response.messages);
+  const screenshots: string[] = response.screenshots ?? [];
+  const screenshotMessages: Message[] = screenshots.map((url) => ({
+    role: 'assistant',
+    content: url,
+    type: 'image'
+  }));
+  return [...formattedMessages, ...screenshotMessages];
 }
 
 export function useAgent() {
@@ -21,39 +65,7 @@ export function useAgent() {
           threadId
         })
         .then((response) => {
-          if (response.messages) {
-            const formattedMessages: Message[] = response.messages
-              .map((m: any): Message | null => {
-                // type が human/ai 以外（tool, system など）は UI に表示しない
-                const msgType: string =
-                  (typeof m.getType === 'function' ? m.getType() : m.type) ||
-                  (m.id?.includes('AI') ? 'ai' : m.id?.includes('Human') ? 'human' : null);
-
-                if (msgType === 'human') {
-                  const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
-                  return { role: 'user', content, type: 'text' };
-                }
-                if (msgType === 'ai') {
-                  const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
-                  // content が空のAIメッセージ（ツール呼び出し中間ステップ）は除外
-                  if (!content.trim()) return null;
-                  return { role: 'assistant', content, type: 'text' };
-                }
-                // tool / system / function など → 表示しない
-                return null;
-              })
-              .filter((m: Message | null): m is Message => m !== null);
-
-            // スクリーンショットを末尾に追加（LLMコンテキスト外のUI専用データ）
-            const screenshots: string[] = response.screenshots ?? [];
-            const screenshotMessages: Message[] = screenshots.map((url) => ({
-              role: 'assistant',
-              content: url,
-              type: 'image'
-            }));
-
-            setMessages([...formattedMessages, ...screenshotMessages]);
-          }
+          setMessages(getFinalMessages(response));
         });
     } else {
       setMessages([]);
@@ -72,7 +84,7 @@ export function useAgent() {
   const sendMessage = useCallback(
     async (content: string) => {
       setIsLoading(true);
-      setMessages((prev) => [...prev, { role: 'user', content }]);
+      setMessages((prev) => [...prev, { role: 'user', content, type: 'text' }]);
 
       try {
         const response = await chrome.runtime.sendMessage({
@@ -85,21 +97,27 @@ export function useAgent() {
         });
 
         if (response.error) {
-          setMessages((prev) => [...prev, { role: 'error', content: response.error }]);
+          setMessages((prev) => [...prev, { role: 'error', content: response.error, type: 'text' }]);
         } else {
-          const content: string = response.response ?? '';
-          const nextMessages: Message[] = [{ role: 'assistant', content, type: 'text' }];
-          // スクリーンショットはLLMコンテキストと分離してUIのみに表示
-          if (response.screenshotDataUrl) {
-            nextMessages.push({ role: 'assistant', content: response.screenshotDataUrl, type: 'image' });
+          if (response.messages) {
+            setMessages(getFinalMessages(response));
+          } else {
+            // Fallback
+            const txt = response.response ?? '';
+            setMessages((prev) => [...prev, { role: 'assistant', content: txt, type: 'text' }]);
           }
-          setMessages((prev) => [...prev, ...nextMessages]);
+          if (response.screenshotDataUrl) {
+            setMessages((prev) => [...prev, { role: 'assistant', content: response.screenshotDataUrl, type: 'image' }]);
+          }
           if (response.threadId) {
             setThreadId(response.threadId);
           }
         }
       } catch (error: any) {
-        setMessages((prev) => [...prev, { role: 'error', content: error.message || 'Failed to send message' }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: 'error', content: error.message || 'Failed to send message', type: 'text' }
+        ]);
       } finally {
         setIsLoading(false);
       }

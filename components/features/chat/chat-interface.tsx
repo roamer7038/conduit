@@ -155,7 +155,7 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
             }
 
             return (
-              <div key={idx} className='flex justify-start mb-4 w-full'>
+              <div key={idx} className='flex justify-start mb-4 w-full pl-4'>
                 <div
                   className={clsx(
                     'text-sm w-full max-w-[95%]',

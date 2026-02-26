@@ -87,8 +87,9 @@ const markdownComponents: Components = {
     const { children, className, node, ref, ...rest } = props;
     const match = /language-(\w+)/.exec(className || '');
     const language = match ? match[1] : '';
-    const content = String(children).replace(/\n$/, '');
-    const isBlock = Boolean(match || content.includes('\n'));
+    const rawContent = String(children);
+    const content = rawContent.replace(/\n$/, '');
+    const isBlock = Boolean(match || rawContent.endsWith('\n') || content.includes('\n'));
 
     if (isBlock && language === 'mermaid') {
       return <MermaidDiagram chart={content} />;
@@ -114,7 +115,7 @@ const markdownComponents: Components = {
       <code
         {...rest}
         className={clsx(
-          'bg-muted px-1.5 py-0.5 rounded-sm font-mono text-sm before:content-hidden after:content-hidden',
+          'bg-muted text-foreground px-1.5 py-0.5 rounded-sm font-mono text-sm before:content-none after:content-none',
           className
         )}
       >
@@ -196,7 +197,7 @@ const markdownComponents: Components = {
   },
   blockquote({ children, ...props }) {
     return (
-      <blockquote className='border-l-4 border-muted pl-4 italic text-muted-foreground my-4' {...props}>
+      <blockquote className='border-l-4 border-muted-foreground/50 pl-4 italic text-muted-foreground my-4' {...props}>
         {children}
       </blockquote>
     );

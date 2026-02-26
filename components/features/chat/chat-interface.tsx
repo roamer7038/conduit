@@ -17,34 +17,59 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
   const messagesTopRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScroll = useRef(false);
+  const isAutoScrolling = useRef(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   const scrollToBottom = useCallback(() => {
+    isAutoScrolling.current = true;
+    shouldAutoScroll.current = true;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+      isAutoScrolling.current = false;
+    }, 500);
   }, []);
 
   const scrollToTop = useCallback(() => {
+    isAutoScrolling.current = true;
+    shouldAutoScroll.current = false;
     messagesTopRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+      isAutoScrolling.current = false;
+    }, 500);
   }, []);
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
     const { scrollTop, scrollHeight, clientHeight } = el;
+    const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+    const isScrollable = scrollHeight > clientHeight;
+    const isAtBottom = isScrollable && distanceToBottom <= 80;
+
+    if (!isAutoScrolling.current) {
+      shouldAutoScroll.current = isAtBottom;
+    }
+
     setShowScrollTop(scrollTop > 80);
-    setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 80);
+    setShowScrollBottom(isScrollable && distanceToBottom > 80);
   }, []);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    if (shouldAutoScroll.current) {
+      scrollToBottom();
+    } else {
+      handleScroll();
+    }
+  }, [messages, isLoading, scrollToBottom, handleScroll]);
 
   const handleSend = () => {
     const content = inputRef.current?.value.trim();
     if (content) {
       sendMessage(content);
       if (inputRef.current) inputRef.current.value = '';
+      scrollToBottom();
     }
   };
 
@@ -155,7 +180,7 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
             }
 
             return (
-              <div key={idx} className='flex justify-start mb-4 w-full pl-4'>
+              <div key={idx} className='flex justify-start mb-4 w-full p-4'>
                 <div
                   className={clsx(
                     'text-sm w-full max-w-[95%]',

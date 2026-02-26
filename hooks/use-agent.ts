@@ -84,41 +84,107 @@ export function useAgent() {
   const sendMessage = useCallback(
     async (content: string) => {
       setIsLoading(true);
-      setMessages((prev) => [...prev, { role: 'user', content, type: 'text' }]);
 
       try {
-        const response = await chrome.runtime.sendMessage({
-          type: 'chat_message',
-          message: {
-            role: 'user',
-            content
-          },
-          threadId // Send current threadId, background will generate if empty
+        const port = chrome.runtime.connect({ name: 'chat_stream' });
+
+        let currentText = '';
+        let currentReasoning = '';
+        let baseMessages: Message[] = [];
+        let accumulatedMessages: Message[] = [];
+
+        setMessages((prev) => {
+          // Keep a reference to the messages before the stream starts,
+          // including the newly sent user message.
+          baseMessages = [...prev, { role: 'user', content, type: 'text' }];
+          return baseMessages;
         });
 
-        if (response.error) {
-          setMessages((prev) => [...prev, { role: 'error', content: response.error, type: 'text' }]);
-        } else {
-          if (response.messages) {
-            setMessages(getFinalMessages(response));
-          } else {
-            // Fallback
-            const txt = response.response ?? '';
-            setMessages((prev) => [...prev, { role: 'assistant', content: txt, type: 'text' }]);
+        port.postMessage({
+          type: 'chat_message',
+          message: { role: 'user', content },
+          threadId
+        });
+
+        port.onMessage.addListener((msg) => {
+          if (msg.type === 'stream_start') {
+            if (msg.threadId) {
+              setThreadId(msg.threadId);
+            }
+          } else if (msg.type === 'stream_chunk') {
+            const { chunk } = msg;
+
+            if (chunk.content) {
+              currentText += chunk.content;
+            }
+            if (chunk.additional_kwargs?.reasoning_content) {
+              currentReasoning += chunk.additional_kwargs.reasoning_content;
+            }
+
+            const tail: Message[] = [];
+            if (currentReasoning) {
+              tail.push({ role: 'reasoning', content: currentReasoning, type: 'reasoning' });
+            }
+            if (currentText) {
+              tail.push({ role: 'assistant', content: currentText, type: 'text' });
+            }
+
+            setMessages([...baseMessages, ...accumulatedMessages, ...tail]);
+            setIsLoading(false); // Hide the global "thinking" spinner since we are streaming results
+          } else if (msg.type === 'tool_start') {
+            if (currentReasoning) {
+              accumulatedMessages.push({ role: 'reasoning', content: currentReasoning, type: 'reasoning' });
+              currentReasoning = '';
+            }
+            if (currentText) {
+              accumulatedMessages.push({ role: 'assistant', content: currentText, type: 'text' });
+              currentText = '';
+            }
+
+            const toolCallInput = typeof msg.input === 'string' ? msg.input : JSON.stringify(msg.input);
+            accumulatedMessages.push({ role: 'tool', name: msg.name, content: toolCallInput, type: 'tool_call' });
+
+            setMessages([...baseMessages, ...accumulatedMessages]);
+          } else if (msg.type === 'tool_end') {
+            const toolResultOutput = typeof msg.output === 'string' ? msg.output : JSON.stringify(msg.output);
+            accumulatedMessages.push({ role: 'tool', name: msg.name, content: toolResultOutput, type: 'tool_result' });
+
+            setMessages([...baseMessages, ...accumulatedMessages]);
+          } else if (msg.type === 'stream_end') {
+            if (msg.response.messages) {
+              setMessages(getFinalMessages(msg.response));
+            } else {
+              setMessages((prev) => [
+                ...prev,
+                { role: 'assistant', content: msg.response.response || '', type: 'text' }
+              ]);
+            }
+            if (msg.response.screenshotDataUrl) {
+              setMessages((prev) => [
+                ...prev,
+                { role: 'assistant', content: msg.response.screenshotDataUrl, type: 'image' }
+              ]);
+            }
+            if (msg.response.threadId) {
+              setThreadId(msg.response.threadId);
+            }
+            setIsLoading(false);
+            port.disconnect();
+          } else if (msg.type === 'error') {
+            setMessages([...baseMessages, { role: 'error', content: msg.error, type: 'text' }]);
+            setIsLoading(false);
+            port.disconnect();
           }
-          if (response.screenshotDataUrl) {
-            setMessages((prev) => [...prev, { role: 'assistant', content: response.screenshotDataUrl, type: 'image' }]);
-          }
-          if (response.threadId) {
-            setThreadId(response.threadId);
-          }
-        }
+        });
+
+        port.onDisconnect.addListener(() => {
+          setIsLoading(false);
+        });
       } catch (error: any) {
         setMessages((prev) => [
           ...prev,
           { role: 'error', content: error.message || 'Failed to send message', type: 'text' }
         ]);
-      } finally {
         setIsLoading(false);
       }
     },

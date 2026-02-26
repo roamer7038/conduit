@@ -22,11 +22,18 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const scrollToBottom = useCallback(() => {
     isAutoScrolling.current = true;
     shouldAutoScroll.current = true;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    setTimeout(() => {
+
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    scrollTimeoutRef.current = setTimeout(() => {
       isAutoScrolling.current = false;
     }, 500);
   }, []);
@@ -35,7 +42,12 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
     isAutoScrolling.current = true;
     shouldAutoScroll.current = false;
     messagesTopRef.current?.scrollIntoView({ behavior: 'smooth' });
-    setTimeout(() => {
+
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    scrollTimeoutRef.current = setTimeout(() => {
       isAutoScrolling.current = false;
     }, 500);
   }, []);

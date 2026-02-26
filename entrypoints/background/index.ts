@@ -135,4 +135,29 @@ export default defineBackground(() => {
     })();
     return true; // Keep channel open for async response
   });
+
+  // Handle long-lived connections for streaming
+  chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === 'chat_stream') {
+      port.onMessage.addListener(async (request) => {
+        try {
+          // Ensure agent is initialized
+          if (!agentExecutor) {
+            await initAgent();
+            if (!agentExecutor) {
+              port.postMessage({ type: 'error', error: 'Agent not initialized. Please set API Key.' });
+              return;
+            }
+          }
+
+          if (request.type === 'chat_message') {
+            await handleChatMessage(request, agentExecutor, port);
+          }
+        } catch (error: any) {
+          console.error('Port message handler error:', error);
+          port.postMessage({ type: 'error', error: error.message || 'Internal error' });
+        }
+      });
+    }
+  });
 });

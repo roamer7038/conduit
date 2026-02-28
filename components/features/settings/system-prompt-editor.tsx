@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { MessageSquareText, Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MessageSquareText, Pencil, RotateCcw } from 'lucide-react';
+import { DEFAULT_SYSTEM_PROMPT } from '@/lib/agent/default-system-prompt';
 
 interface SystemPromptEditorProps {
   systemPrompt: string;
@@ -42,7 +44,7 @@ export function SystemPromptEditor({ systemPrompt, onSystemPromptChange }: Syste
             {preview ? (
               <p className='text-sm text-foreground truncate'>{preview}</p>
             ) : (
-              <p className='text-sm text-muted-foreground italic'>未設定 — クリックして編集</p>
+              <p className='text-sm text-muted-foreground italic'>デフォルト設定 — クリックして編集</p>
             )}
           </div>
           <Pencil className='w-4 h-4 text-muted-foreground shrink-0' />
@@ -63,7 +65,19 @@ export function SystemPromptEditor({ systemPrompt, onSystemPromptChange }: Syste
               onChange={(e) => handleChange(e.target.value)}
             />
           </div>
-          <p className='text-xs text-muted-foreground'>変更は自動保存されます。</p>
+          <div className='flex items-center justify-between mt-2'>
+            <p className='text-xs text-muted-foreground'>変更は自動保存されます。</p>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => handleChange(DEFAULT_SYSTEM_PROMPT)}
+              className='gap-2 text-muted-foreground hover:text-foreground'
+              title='デフォルトのプロンプトに戻す'
+            >
+              <RotateCcw className='w-4 h-4' />
+              デフォルトに戻す
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

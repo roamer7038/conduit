@@ -3,6 +3,7 @@ import { StorageService } from '@/lib/services/storage/storage-service';
 import { getAllToolNames } from '@/lib/agent/tools/tool-meta';
 import type { AgentSettingsConfig } from '@/lib/types/agent';
 import { DEFAULT_AGENT_ID } from '@/lib/types/agent';
+import { DEFAULT_SYSTEM_PROMPT } from '@/lib/agent/default-system-prompt';
 
 /**
  * Hook for managing agent settings.
@@ -20,7 +21,7 @@ export function useAgentSettings(agentId?: string) {
     enabledTools: [],
     enabledMcpServers: [],
     disabledMcpTools: [],
-    systemPrompt: ''
+    systemPrompt: DEFAULT_SYSTEM_PROMPT
   });
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -39,7 +40,7 @@ export function useAgentSettings(agentId?: string) {
         enabledTools: defaultTools,
         enabledMcpServers: [],
         disabledMcpTools: [],
-        systemPrompt: ''
+        systemPrompt: DEFAULT_SYSTEM_PROMPT
       };
       setConfig(defaultConfig);
     }

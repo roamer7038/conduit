@@ -1,7 +1,7 @@
 // lib/services/storage/storage-service.ts
 /// <reference types="chrome"/>
 import { STORAGE_KEYS } from './storage-keys';
-import type { LLMConfig } from '@/lib/types/agent';
+import type { LlmProviderConfig, AgentSettingsConfig } from '@/lib/types/agent';
 import type { McpServerConfig } from '@/lib/types/settings';
 import { CryptoService } from '../crypto/crypto-service';
 
@@ -45,49 +45,64 @@ export class StorageService {
     }
   }
 
-  // LLM Configuration
-  static async getLLMConfig(): Promise<LLMConfig> {
+  // LLM Providers
+  static async getLlmProviders(): Promise<LlmProviderConfig[]> {
     try {
-      const data = await chrome.storage.local.get([
-        STORAGE_KEYS.API_KEY,
-        STORAGE_KEYS.BASE_URL,
-        STORAGE_KEYS.MODEL_NAME
-      ]);
+      const data = await this.get<LlmProviderConfig[]>(STORAGE_KEYS.LLM_PROVIDERS);
+      if (!data) return [];
 
-      // APIキーを復号化
-      let apiKey = (data[STORAGE_KEYS.API_KEY] as string) || '';
-      if (apiKey) {
-        apiKey = await CryptoService.decrypt(apiKey);
-      }
-
-      return {
-        apiKey,
-        baseUrl: (data[STORAGE_KEYS.BASE_URL] as string) || undefined,
-        modelName: (data[STORAGE_KEYS.MODEL_NAME] as string) || undefined
-      };
+      // Decrypt apiKeys
+      return Promise.all(
+        data.map(async (provider) => {
+          if (provider.apiKey) {
+            const decryptedKey = await CryptoService.decrypt(provider.apiKey);
+            return { ...provider, apiKey: decryptedKey };
+          }
+          return provider;
+        })
+      );
     } catch (error) {
-      console.error('[StorageService] Failed to get LLM config:', error);
-      throw new StorageError('Failed to get LLM config', error);
+      console.error('[StorageService] Failed to get LLM providers:', error);
+      throw new StorageError('Failed to get LLM providers', error);
     }
   }
 
-  static async saveLLMConfig(config: Partial<LLMConfig>): Promise<void> {
+  static async saveLlmProviders(providers: LlmProviderConfig[]): Promise<void> {
     try {
-      const updates: Record<string, string | undefined> = {};
-      if ('apiKey' in config && config.apiKey !== undefined) {
-        // APIキーを暗号化
-        updates[STORAGE_KEYS.API_KEY] = await CryptoService.encrypt(config.apiKey);
-      }
-      if ('baseUrl' in config) {
-        updates[STORAGE_KEYS.BASE_URL] = config.baseUrl ?? '';
-      }
-      if ('modelName' in config) {
-        updates[STORAGE_KEYS.MODEL_NAME] = config.modelName ?? '';
-      }
-      await chrome.storage.local.set(updates);
+      // Encrypt apiKeys
+      const encryptedProviders = await Promise.all(
+        providers.map(async (provider) => {
+          if (provider.apiKey) {
+            const encryptedKey = await CryptoService.encrypt(provider.apiKey);
+            return { ...provider, apiKey: encryptedKey };
+          }
+          return provider;
+        })
+      );
+      await this.set(STORAGE_KEYS.LLM_PROVIDERS, encryptedProviders);
     } catch (error) {
-      console.error('[StorageService] Failed to save LLM config:', error);
-      throw new StorageError('Failed to save LLM config', error);
+      console.error('[StorageService] Failed to save LLM providers:', error);
+      throw new StorageError('Failed to save LLM providers', error);
+    }
+  }
+
+  // Agent Settings Configuration
+  static async getAgentConfig(): Promise<AgentSettingsConfig | null> {
+    try {
+      const config = await this.get<AgentSettingsConfig>(STORAGE_KEYS.AGENT_CONFIG);
+      return config || null;
+    } catch (error) {
+      console.error('[StorageService] Failed to get Agent Config:', error);
+      throw new StorageError('Failed to get Agent Config', error);
+    }
+  }
+
+  static async saveAgentConfig(config: AgentSettingsConfig): Promise<void> {
+    try {
+      await this.set(STORAGE_KEYS.AGENT_CONFIG, config);
+    } catch (error) {
+      console.error('[StorageService] Failed to save Agent Config:', error);
+      throw new StorageError('Failed to save Agent Config', error);
     }
   }
 
@@ -142,26 +157,6 @@ export class StorageService {
     } catch (error) {
       console.error('[StorageService] Failed to save MCP servers:', error);
       throw new StorageError('Failed to save MCP servers', error);
-    }
-  }
-
-  // Tool Settings
-  static async getEnabledTools(): Promise<string[]> {
-    try {
-      const tools = await this.get<string[]>(STORAGE_KEYS.ENABLED_TOOLS);
-      return tools || [];
-    } catch (error) {
-      console.error('[StorageService] Failed to get enabled tools:', error);
-      throw new StorageError('Failed to get enabled tools', error);
-    }
-  }
-
-  static async saveEnabledTools(tools: string[]): Promise<void> {
-    try {
-      await this.set(STORAGE_KEYS.ENABLED_TOOLS, tools);
-    } catch (error) {
-      console.error('[StorageService] Failed to save enabled tools:', error);
-      throw new StorageError('Failed to save enabled tools', error);
     }
   }
 

@@ -7,12 +7,13 @@ import { McpServerConfig } from './mcp-types';
  * Build MCP server connection config for MultiServerMCPClient from user settings.
  */
 function buildMcpServerEntries(
-  servers: McpServerConfig[]
+  servers: McpServerConfig[],
+  enabledServerIds: string[]
 ): Record<string, { transport?: 'http' | 'sse'; url: string; headers?: Record<string, string> }> {
   const entries: Record<string, { transport?: 'http' | 'sse'; url: string; headers?: Record<string, string> }> = {};
 
   for (const server of servers) {
-    if (!server.enabled) continue;
+    if (!enabledServerIds.includes(server.id)) continue;
 
     const entry: { transport?: 'http' | 'sse'; url: string; headers?: Record<string, string> } = {
       url: server.url
@@ -38,14 +39,15 @@ function buildMcpServerEntries(
  * Returns an empty array if no servers are enabled or all connections fail.
  */
 export async function createMcpTools(
-  servers: McpServerConfig[]
+  servers: McpServerConfig[],
+  enabledServerIds: string[]
 ): Promise<{ tools: DynamicStructuredTool[]; client: MultiServerMCPClient | null }> {
-  const enabledServers = servers.filter((s) => s.enabled);
+  const enabledServers = servers.filter((s) => enabledServerIds.includes(s.id));
   if (enabledServers.length === 0) {
     return { tools: [], client: null };
   }
 
-  const mcpServers = buildMcpServerEntries(enabledServers);
+  const mcpServers = buildMcpServerEntries(servers, enabledServerIds);
 
   const client = new MultiServerMCPClient({
     throwOnLoadError: false,

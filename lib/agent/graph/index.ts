@@ -8,16 +8,19 @@ import { getMcpServers } from '../tools/mcp-types';
 import { LLMFactory } from '../llm';
 import { getAllToolNames, TOOL_SETTINGS_STORAGE_KEY } from '../tools/tool-meta';
 
-export interface AgentConfig {
+import { StorageService } from '../../services/storage/storage-service';
+import type { AgentSettingsConfig } from '../../types/agent';
+
+export interface GraphAgentConfig {
   apiKey: string;
   baseUrl?: string;
-  modelName?: string;
+  modelName: string;
 }
 
 /** Keeps a reference to the active MCP client so it can be closed on re-init */
 let activeMcpClient: { close(): Promise<void> } | null = null;
 
-export async function createLangGraphAgent(config: AgentConfig) {
+export async function createLangGraphAgent(config: GraphAgentConfig) {
   // Close previous MCP client if any
   if (activeMcpClient) {
     try {
@@ -39,16 +42,16 @@ export async function createLangGraphAgent(config: AgentConfig) {
   // 2. Initialize Built-in Browser Tools — filter by user preferences
   const allBrowserTools = createBrowserTools();
 
-  const stored = await chrome.storage.local.get([TOOL_SETTINGS_STORAGE_KEY]);
-  const enabledNames: string[] = Array.isArray(stored[TOOL_SETTINGS_STORAGE_KEY])
-    ? stored[TOOL_SETTINGS_STORAGE_KEY]
-    : getAllToolNames();
+  // Get agent settings to know which tools are enabled
+  const agentSettings = await StorageService.getAgentConfig();
+  const enabledBrowserTools = agentSettings?.enabledTools || getAllToolNames();
+  const enabledMcpServers = agentSettings?.enabledMcpServers || [];
 
-  const browserTools = allBrowserTools.filter((t) => enabledNames.includes(t.name));
+  const browserTools = allBrowserTools.filter((t) => enabledBrowserTools.includes(t.name));
 
   // 3. Initialize Remote MCP Tools
   const mcpServers = await getMcpServers();
-  const { tools: mcpTools, client: mcpClient } = await createMcpTools(mcpServers);
+  const { tools: mcpTools, client: mcpClient } = await createMcpTools(mcpServers, enabledMcpServers);
   activeMcpClient = mcpClient;
 
   if (mcpTools.length > 0) {

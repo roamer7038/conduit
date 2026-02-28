@@ -18,16 +18,25 @@ export default defineBackground(() => {
 
   // Initialize agent when config changes or on startup if config exists
   const initAgent = async () => {
-    const config = await StorageService.getLLMConfig();
+    const agentConfig = await StorageService.getAgentConfig();
+    const providers = await StorageService.getLlmProviders();
 
-    if (config.apiKey) {
-      console.log('Initializing agent...');
-      agentExecutor = await createLangGraphAgent({
-        apiKey: config.apiKey,
-        baseUrl: config.baseUrl,
-        modelName: config.modelName
-      });
-      console.log('Agent initialized.');
+    if (agentConfig?.providerId) {
+      const provider = providers.find((p) => p.id === agentConfig.providerId);
+      if (provider?.apiKey) {
+        console.log('Initializing agent...');
+        try {
+          agentExecutor = await createLangGraphAgent({
+            apiKey: provider.apiKey,
+            baseUrl: provider.baseUrl,
+            modelName: agentConfig.modelName
+          });
+          console.log('Agent initialized.');
+        } catch (error) {
+          console.error('Failed to initialize agent:', error);
+          agentExecutor = null;
+        }
+      }
     }
   };
 
@@ -58,12 +67,7 @@ export default defineBackground(() => {
   });
 
   chrome.storage.onChanged.addListener((changes) => {
-    if (
-      changes[STORAGE_KEYS.API_KEY] ||
-      changes[STORAGE_KEYS.BASE_URL] ||
-      changes[STORAGE_KEYS.MODEL_NAME] ||
-      changes[MCP_SERVERS_STORAGE_KEY]
-    ) {
+    if (changes[STORAGE_KEYS.LLM_PROVIDERS] || changes[STORAGE_KEYS.AGENT_CONFIG] || changes[MCP_SERVERS_STORAGE_KEY]) {
       initAgent();
     }
   });
@@ -114,7 +118,20 @@ export default defineBackground(() => {
           }
 
           case 'fetch_models': {
-            const result = await handleFetchModels();
+            const agentConfig = await StorageService.getAgentConfig();
+            if (!agentConfig?.providerId) {
+              sendResponse({ error: 'No LLM Provider selected in Agent Settings' });
+              return;
+            }
+            const providers = await StorageService.getLlmProviders();
+            const provider = providers.find((p) => p.id === agentConfig.providerId);
+            if (!provider) {
+              sendResponse({ error: 'Selected LLM Provider not found' });
+              return;
+            }
+
+            // Pass provider to handler
+            const result = await handleFetchModels(provider);
             sendResponse(result);
             break;
           }

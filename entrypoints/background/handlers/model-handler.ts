@@ -1,21 +1,23 @@
 // entrypoints/background/handlers/model-handler.ts
 /// <reference types="chrome"/>
 import { clearModelCache } from '@/lib/agent/model-cache';
-import { StorageService } from '@/lib/services/storage/storage-service';
 import type { FetchModelsResponse } from '@/lib/services/message/message-types';
+import type { LlmProviderConfig } from '@/lib/types/agent';
 
-export async function handleFetchModels(): Promise<FetchModelsResponse> {
-  const config = await StorageService.getLLMConfig();
-
-  if (!config.apiKey) {
-    throw new Error('API Key is not configured');
+export async function handleFetchModels(provider: LlmProviderConfig): Promise<FetchModelsResponse> {
+  if (!provider.apiKey) {
+    throw new Error('API Key is not configured for this provider');
   }
 
-  const url = `${config.baseUrl || 'https://api.openai.com/v1'}/models`;
+  let baseUrl = provider.baseUrl || 'https://api.openai.com/v1';
+  if (baseUrl.endsWith('/')) {
+    baseUrl = baseUrl.slice(0, -1);
+  }
+  const url = `${baseUrl}/models`;
 
   const response = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${config.apiKey}`,
+      Authorization: `Bearer ${provider.apiKey}`,
       'Content-Type': 'application/json'
     }
   });

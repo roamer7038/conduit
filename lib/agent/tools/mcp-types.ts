@@ -14,8 +14,6 @@ export interface McpServerConfig {
   transport: 'sse' | 'http';
   /** Custom HTTP headers (e.g. for authentication) */
   headers: Record<string, string>;
-  /** Whether this server is enabled */
-  enabled: boolean;
 }
 
 /** Storage key for MCP server configurations */

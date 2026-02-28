@@ -5,7 +5,6 @@ export interface McpServerConfig {
   url: string;
   transport: 'sse' | 'http';
   headers: Record<string, string>;
-  enabled: boolean;
 }
 
 export interface TestResult {

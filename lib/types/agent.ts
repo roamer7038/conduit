@@ -5,8 +5,17 @@ export interface AgentConfig {
   modelName?: string;
 }
 
-export interface LLMConfig {
-  apiKey: string;
+export interface LlmProviderConfig {
+  id: string; // e.g. "openai", "openrouter", "ollama", or a custom UUID
+  name: string; // User-facing name
+  providerType: 'openai' | 'openai-compatible' | string;
   baseUrl?: string;
-  modelName?: string;
+  apiKey: string;
+}
+
+export interface AgentSettingsConfig {
+  providerId: string;
+  modelName: string;
+  enabledTools: string[];
+  enabledMcpServers: string[];
 }

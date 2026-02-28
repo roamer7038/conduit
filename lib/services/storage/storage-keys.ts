@@ -1,18 +1,14 @@
 // lib/services/storage/storage-keys.ts
 export const STORAGE_KEYS = {
-  // LLM Configuration
-  API_KEY: 'apiKey',
-  BASE_URL: 'baseUrl',
-  MODEL_NAME: 'modelName',
+  // Providers and Agent Config
+  LLM_PROVIDERS: 'llmProviders',
+  AGENT_CONFIG: 'agentConfig',
 
   // Thread Management
   LAST_ACTIVE_THREAD_ID: 'lastActiveThreadId',
 
   // MCP Configuration
   MCP_SERVERS: 'mcpServers',
-
-  // Tool Configuration
-  ENABLED_TOOLS: 'enabledTools',
 
   // Checkpointer
   CHECKPOINT_PREFIX: 'checkpoint:',

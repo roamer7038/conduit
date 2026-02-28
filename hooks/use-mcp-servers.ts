@@ -42,11 +42,6 @@ export function useMcpServers() {
     await loadServers();
   };
 
-  // サーバーのトグル
-  const toggleServer = async (id: string, enabled: boolean) => {
-    await updateServer(id, { enabled });
-  };
-
   // 接続テスト
   const testConnection = async (server: McpServerConfig) => {
     setTestingServerId(server.id);
@@ -80,7 +75,6 @@ export function useMcpServers() {
     addServer,
     updateServer,
     deleteServer,
-    testConnection,
-    toggleServer
+    testConnection
   };
 }

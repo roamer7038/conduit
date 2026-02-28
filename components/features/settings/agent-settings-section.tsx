@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,18 +14,20 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
-import { Puzzle, Server, Cpu, Loader2 } from 'lucide-react';
+import { Puzzle, Server, Cpu, Loader2, MessageSquareText } from 'lucide-react';
 import type { LlmProviderConfig, AgentSettingsConfig, McpToolInfo } from '@/lib/types/agent';
 import type { McpServerConfig } from '@/lib/types/settings';
 import { getAllToolNames, BROWSER_TOOL_META } from '@/lib/agent/tools/tool-meta';
 import { useModelSelection } from '@/hooks/use-model-selection';
 import { MessageBus } from '@/lib/services/message/message-bus';
+import { Textarea } from '@/components/ui/textarea';
 
 interface AgentSettingsSectionProps {
   agentConfig: AgentSettingsConfig;
   providers: LlmProviderConfig[];
   mcpServers: McpServerConfig[];
   setProviderAndModel: (providerId: string, modelName: string) => void;
+  setSystemPrompt: (prompt: string) => void;
   toggleTool: (toolName: string, enabled: boolean) => void;
   toggleMcpServer: (serverId: string, enabled: boolean) => void;
   toggleMcpTool: (toolName: string, enabled: boolean) => void;
@@ -36,6 +38,7 @@ export function AgentSettingsSection({
   providers,
   mcpServers,
   setProviderAndModel,
+  setSystemPrompt,
   toggleTool,
   toggleMcpServer,
   toggleMcpTool
@@ -101,8 +104,47 @@ export function AgentSettingsSection({
     }
   }, [agentConfig.enabledMcpServers, fetchToolsForServer, mcpToolsByServer, mcpToolsLoading]);
 
+  // --- System Prompt (debounced) ---
+  const [localSystemPrompt, setLocalSystemPrompt] = useState(agentConfig.systemPrompt || '');
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setLocalSystemPrompt(agentConfig.systemPrompt || '');
+  }, [agentConfig.systemPrompt]);
+
+  const handleSystemPromptChange = (value: string) => {
+    setLocalSystemPrompt(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSystemPrompt(value);
+    }, 500);
+  };
+
   return (
     <div className='space-y-8'>
+      {/* システムプロンプト */}
+      <div>
+        <h2 className='text-lg font-semibold tracking-tight flex items-center gap-2 mb-4'>
+          <MessageSquareText className='w-5 h-5' />
+          システムプロンプト
+        </h2>
+        <Card>
+          <div className='p-4 space-y-2'>
+            <Label>エージェントへの指示</Label>
+            <Textarea
+              className='min-h-[120px] text-sm font-mono'
+              placeholder='エージェントに対するシステムプロンプトを入力...'
+              value={localSystemPrompt}
+              onChange={(e) => handleSystemPromptChange(e.target.value)}
+            />
+            <p className='text-xs text-muted-foreground'>
+              エージェントの動作を制御するシステムプロンプトです。変更は自動保存されます。
+            </p>
+          </div>
+        </Card>
+      </div>
+
+      {/* モデル設定 */}
       <div>
         <h2 className='text-lg font-semibold tracking-tight flex items-center gap-2 mb-4'>
           <Cpu className='w-5 h-5' />

@@ -19,6 +19,7 @@ export interface AgentSettingsConfig {
   enabledTools: string[];
   enabledMcpServers: string[];
   disabledMcpTools: string[];
+  systemPrompt?: string;
 }
 
 /** Lightweight tool info returned from MCP server discovery. */

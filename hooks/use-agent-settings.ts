@@ -8,7 +8,8 @@ const DEFAULT_CONFIG: AgentSettingsConfig = {
   modelName: '',
   enabledTools: [],
   enabledMcpServers: [],
-  disabledMcpTools: []
+  disabledMcpTools: [],
+  systemPrompt: ''
 };
 
 export function useAgentSettings() {
@@ -92,6 +93,10 @@ export function useAgentSettings() {
     });
   };
 
+  const setSystemPrompt = (prompt: string) => {
+    updateConfig({ systemPrompt: prompt });
+  };
+
   return {
     config,
     isLoaded,
@@ -99,6 +104,7 @@ export function useAgentSettings() {
     setProviderAndModel,
     toggleTool,
     toggleMcpServer,
-    toggleMcpTool
+    toggleMcpTool,
+    setSystemPrompt
   };
 }

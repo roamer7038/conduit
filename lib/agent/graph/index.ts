@@ -67,9 +67,11 @@ export async function createLangGraphAgent(config: GraphAgentConfig) {
   const checkpointer = new ChromeStorageCheckpointer();
 
   // 6. Create Agent
+  const systemPrompt = agentSettings?.systemPrompt || undefined;
   return createAgent({
     model,
     tools,
-    checkpointer
+    checkpointer,
+    ...(systemPrompt ? { systemPrompt } : {})
   });
 }

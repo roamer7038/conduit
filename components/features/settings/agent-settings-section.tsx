@@ -14,13 +14,15 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
-import { Puzzle, Server, Cpu, Loader2, MessageSquareText } from 'lucide-react';
+import { Puzzle, Server, Cpu, Loader2, MessageSquareText, Pencil } from 'lucide-react';
 import type { LlmProviderConfig, AgentSettingsConfig, McpToolInfo } from '@/lib/types/agent';
 import type { McpServerConfig } from '@/lib/types/settings';
 import { getAllToolNames, BROWSER_TOOL_META } from '@/lib/agent/tools/tool-meta';
 import { useModelSelection } from '@/hooks/use-model-selection';
 import { MessageBus } from '@/lib/services/message/message-bus';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface AgentSettingsSectionProps {
   agentConfig: AgentSettingsConfig;
@@ -104,7 +106,8 @@ export function AgentSettingsSection({
     }
   }, [agentConfig.enabledMcpServers, fetchToolsForServer, mcpToolsByServer, mcpToolsLoading]);
 
-  // --- System Prompt (debounced) ---
+  // --- System Prompt Modal ---
+  const [promptDialogOpen, setPromptDialogOpen] = useState(false);
   const [localSystemPrompt, setLocalSystemPrompt] = useState(agentConfig.systemPrompt || '');
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -120,6 +123,12 @@ export function AgentSettingsSection({
     }, 500);
   };
 
+  const promptPreview = agentConfig.systemPrompt
+    ? agentConfig.systemPrompt.length > 80
+      ? agentConfig.systemPrompt.slice(0, 80) + '...'
+      : agentConfig.systemPrompt
+    : null;
+
   return (
     <div className='space-y-8'>
       {/* システムプロンプト */}
@@ -128,20 +137,36 @@ export function AgentSettingsSection({
           <MessageSquareText className='w-5 h-5' />
           システムプロンプト
         </h2>
-        <Card>
-          <div className='p-4 space-y-2'>
-            <Label>エージェントへの指示</Label>
-            <Textarea
-              className='min-h-[120px] text-sm font-mono'
-              placeholder='エージェントに対するシステムプロンプトを入力...'
-              value={localSystemPrompt}
-              onChange={(e) => handleSystemPromptChange(e.target.value)}
-            />
-            <p className='text-xs text-muted-foreground'>
-              エージェントの動作を制御するシステムプロンプトです。変更は自動保存されます。
-            </p>
+        <Card className='cursor-pointer hover:bg-accent/50 transition-colors' onClick={() => setPromptDialogOpen(true)}>
+          <div className='p-4 flex items-center justify-between gap-3'>
+            <div className='min-w-0 flex-1'>
+              {promptPreview ? (
+                <p className='text-sm text-foreground truncate'>{promptPreview}</p>
+              ) : (
+                <p className='text-sm text-muted-foreground italic'>未設定 — クリックして編集</p>
+              )}
+            </div>
+            <Pencil className='w-4 h-4 text-muted-foreground shrink-0' />
           </div>
         </Card>
+
+        <Dialog open={promptDialogOpen} onOpenChange={setPromptDialogOpen}>
+          <DialogContent className='sm:max-w-2xl max-h-[80vh] flex flex-col'>
+            <DialogHeader>
+              <DialogTitle>システムプロンプトの編集</DialogTitle>
+              <DialogDescription>エージェントの動作を制御するシステムプロンプトを入力してください。</DialogDescription>
+            </DialogHeader>
+            <div className='flex-1 min-h-0'>
+              <Textarea
+                className='h-[50vh] text-sm font-mono resize-none overflow-y-auto'
+                placeholder='エージェントに対するシステムプロンプトを入力...'
+                value={localSystemPrompt}
+                onChange={(e) => handleSystemPromptChange(e.target.value)}
+              />
+            </div>
+            <p className='text-xs text-muted-foreground'>変更は自動保存されます。</p>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* モデル設定 */}

@@ -1,8 +1,9 @@
 // lib/types/message.ts
 export interface Message {
-  role: 'user' | 'assistant' | 'error';
+  role: 'user' | 'assistant' | 'error' | 'tool' | 'reasoning';
   content: string;
-  type?: 'text' | 'image';
+  type?: 'text' | 'image' | 'tool_call' | 'tool_result' | 'reasoning';
+  name?: string;
 }
 
 export interface Thread {
@@ -12,7 +13,7 @@ export interface Thread {
 }
 
 export interface ThreadHistory {
-  messages: Message[];
+  messages: any[];
   screenshots: string[];
 }
 

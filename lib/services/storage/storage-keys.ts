@@ -2,7 +2,8 @@
 export const STORAGE_KEYS = {
   // Providers and Agent Config
   LLM_PROVIDERS: 'llmProviders',
-  AGENT_CONFIG: 'agentConfig',
+  AGENT_CONFIGS: 'agentConfigs',
+  ACTIVE_AGENT_ID: 'activeAgentId',
 
   // Thread Management
   LAST_ACTIVE_THREAD_ID: 'lastActiveThreadId',

@@ -13,7 +13,7 @@ export function useModelSelection(providerId?: string) {
     async (forceRefresh = false) => {
       setModelsLoading(true);
       try {
-        const agentConfig = await StorageService.getAgentConfig();
+        const agentConfig = await StorageService.getActiveAgentConfig();
         const providers = await StorageService.getLlmProviders();
 
         // We now need to look at the providerId passed, normally we take it from param, or from Agent Settings

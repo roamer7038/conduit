@@ -1,8 +1,7 @@
 // entrypoints/background/handlers/mcp-handler.ts
 import { testMcpConnection } from '@/lib/agent/tools/mcp';
 import { StorageService } from '@/lib/services/storage/storage-service';
-import type { McpServerConfig, TestResult } from '@/lib/types/settings';
-import type { McpToolInfo } from '@/lib/types/agent';
+import type { McpServerConfig, TestResult, McpToolInfo } from '@/lib/types/agent';
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
 export async function handleTestMcpConnection(server: McpServerConfig): Promise<TestResult> {

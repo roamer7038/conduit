@@ -2,6 +2,7 @@
 /// <reference types="chrome"/>
 import { ChromeStorageCheckpointer } from '@/lib/agent/checkpointer';
 import { StorageService } from '@/lib/services/storage/storage-service';
+import { mapRawMessages } from '@/lib/agent/message-mapper';
 import type { Thread, ThreadHistory } from '@/lib/types/message';
 
 export async function handleGetThreads(): Promise<{ threads: Thread[] }> {
@@ -16,14 +17,7 @@ export async function handleGetThreadHistory(threadId: string, agentExecutor: an
 
   // Extract messages from state
   const rawMessages = state.values.messages || [];
-  const messages = rawMessages.map((m: any) => ({
-    type: (typeof m.getType === 'function' ? m.getType() : m.type) || (m.id?.includes('Human') ? 'human' : 'ai'),
-    content: m.content,
-    id: m.id,
-    name: m.name,
-    tool_calls: m.tool_calls || [],
-    additional_kwargs: m.additional_kwargs || {}
-  }));
+  const messages = mapRawMessages(rawMessages);
 
   // Get screenshots for this thread
   const screenshots = await StorageService.getScreenshots(threadId);

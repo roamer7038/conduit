@@ -3,6 +3,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { ChatMessageResponse } from '@/lib/types/message';
 import { StorageService } from '@/lib/services/storage/storage-service';
+import { mapRawMessages } from '@/lib/agent/message-mapper';
 
 export async function handleChatMessage(
   request: { message: any; threadId?: string },
@@ -57,14 +58,7 @@ export async function handleChatMessage(
       // We need the final state to return everything structured properly.
       const currentState = await agentExecutor.getState(config);
       const rawMessages = currentState.values?.messages || [];
-      const messages = rawMessages.map((m: any) => ({
-        type: (typeof m.getType === 'function' ? m.getType() : m.type) || (m.id?.includes('Human') ? 'human' : 'ai'),
-        content: m.content,
-        id: m.id,
-        name: m.name,
-        tool_calls: m.tool_calls || [],
-        additional_kwargs: m.additional_kwargs || {}
-      }));
+      const messages = mapRawMessages(rawMessages);
 
       const screenshots = await StorageService.getScreenshots(config.configurable.thread_id);
 
@@ -101,14 +95,7 @@ export async function handleChatMessage(
 
   // Generate mapped messages
   const rawMessages = result.messages || [];
-  const messages = rawMessages.map((m: any) => ({
-    type: (typeof m.getType === 'function' ? m.getType() : m.type) || (m.id?.includes('Human') ? 'human' : 'ai'),
-    content: m.content,
-    id: m.id,
-    name: m.name,
-    tool_calls: m.tool_calls || [],
-    additional_kwargs: m.additional_kwargs || {}
-  }));
+  const messages = mapRawMessages(rawMessages);
 
   const screenshots = await StorageService.getScreenshots(config.configurable.thread_id);
 

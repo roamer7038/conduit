@@ -1,8 +1,6 @@
 // lib/services/message/message-types.ts
-import type { McpServerConfig } from '@/lib/types/settings';
+import type { McpServerConfig, TestResult, McpToolInfo } from '@/lib/types/agent';
 import type { Thread, ThreadHistory, ChatMessageResponse } from '@/lib/types/message';
-import type { TestResult } from '@/lib/types/settings';
-import type { McpToolInfo } from '@/lib/types/agent';
 
 export type MessageRequest =
   | { type: 'chat_message'; message: any; threadId?: string }

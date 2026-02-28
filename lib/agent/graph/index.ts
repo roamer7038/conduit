@@ -4,18 +4,11 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { ChromeStorageCheckpointer } from '../checkpointer';
 import { createBrowserTools } from '../tools/browser/index';
 import { createMcpTools } from '../tools/mcp';
-import { getMcpServers } from '../tools/mcp-types';
 import { LLMFactory } from '../llm';
-import { getAllToolNames, TOOL_SETTINGS_STORAGE_KEY } from '../tools/tool-meta';
+import { getAllToolNames } from '../tools/tool-meta';
 
 import { StorageService } from '../../services/storage/storage-service';
-import type { AgentSettingsConfig } from '../../types/agent';
-
-export interface GraphAgentConfig {
-  apiKey: string;
-  baseUrl?: string;
-  modelName: string;
-}
+import type { AgentSettingsConfig, GraphAgentConfig } from '../../types/agent';
 
 /** Keeps a reference to the active MCP client so it can be closed on re-init */
 let activeMcpClient: { close(): Promise<void> } | null = null;
@@ -43,7 +36,7 @@ export async function createLangGraphAgent(config: GraphAgentConfig) {
   const allBrowserTools = createBrowserTools();
 
   // Get agent settings to know which tools are enabled
-  const agentSettings = await StorageService.getAgentConfig();
+  const agentSettings = await StorageService.getActiveAgentConfig();
   const enabledBrowserTools = agentSettings?.enabledTools || getAllToolNames();
   const enabledMcpServers = agentSettings?.enabledMcpServers || [];
   const disabledMcpTools = agentSettings?.disabledMcpTools || [];
@@ -51,7 +44,7 @@ export async function createLangGraphAgent(config: GraphAgentConfig) {
   const browserTools = allBrowserTools.filter((t) => enabledBrowserTools.includes(t.name));
 
   // 3. Initialize Remote MCP Tools
-  const mcpServers = await getMcpServers();
+  const mcpServers = await StorageService.getMcpServers();
   const { tools: mcpTools, client: mcpClient } = await createMcpTools(mcpServers, enabledMcpServers);
   activeMcpClient = mcpClient;
 

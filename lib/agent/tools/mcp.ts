@@ -1,7 +1,7 @@
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 
-import { McpServerConfig } from './mcp-types';
+import type { McpServerConfig } from './mcp-types';
 
 /**
  * Build MCP server connection config for MultiServerMCPClient from user settings.

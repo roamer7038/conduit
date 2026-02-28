@@ -2,54 +2,67 @@ import { useState, useEffect, useCallback } from 'react';
 import { StorageService } from '@/lib/services/storage/storage-service';
 import { getAllToolNames } from '@/lib/agent/tools/tool-meta';
 import type { AgentSettingsConfig } from '@/lib/types/agent';
+import { DEFAULT_AGENT_ID } from '@/lib/types/agent';
 
-const DEFAULT_CONFIG: AgentSettingsConfig = {
-  providerId: '',
-  modelName: '',
-  enabledTools: [],
-  enabledMcpServers: [],
-  disabledMcpTools: [],
-  systemPrompt: ''
-};
+/**
+ * Hook for managing agent settings.
+ * Accepts an optional `agentId` to manage a specific agent's config.
+ * Defaults to the active agent (or 'default').
+ */
+export function useAgentSettings(agentId?: string) {
+  const resolvedAgentId = agentId || DEFAULT_AGENT_ID;
 
-export function useAgentSettings() {
-  const [config, setConfig] = useState<AgentSettingsConfig>(DEFAULT_CONFIG);
+  const [config, setConfig] = useState<AgentSettingsConfig>({
+    agentId: resolvedAgentId,
+    agentName: 'Default Agent',
+    providerId: '',
+    modelName: '',
+    enabledTools: [],
+    enabledMcpServers: [],
+    disabledMcpTools: [],
+    systemPrompt: ''
+  });
   const [isLoaded, setIsLoaded] = useState(false);
 
   const loadConfig = useCallback(async () => {
-    const savedConfig = await StorageService.getAgentConfig();
+    const savedConfig = await StorageService.getAgentConfig(resolvedAgentId);
     if (savedConfig) {
-      // If enabledTools is empty, maybe default to all built-in tools for new users?
-      // Since we dropped backward compatibility, we can assume empty means empty.
-      // But let's keep all tools enabled by default if no setting exists at all.
       setConfig(savedConfig);
     } else {
       // Setup defaults if first time
       const defaultTools = getAllToolNames();
-      setConfig({ ...DEFAULT_CONFIG, enabledTools: defaultTools });
+      const defaultConfig: AgentSettingsConfig = {
+        agentId: resolvedAgentId,
+        agentName: resolvedAgentId === DEFAULT_AGENT_ID ? 'Default Agent' : resolvedAgentId,
+        providerId: '',
+        modelName: '',
+        enabledTools: defaultTools,
+        enabledMcpServers: [],
+        disabledMcpTools: [],
+        systemPrompt: ''
+      };
+      setConfig(defaultConfig);
     }
     setIsLoaded(true);
-  }, []);
+  }, [resolvedAgentId]);
 
   useEffect(() => {
     loadConfig();
   }, [loadConfig]);
 
-  // Method to update any part of the config and auto-save
-  const updateConfig = async (updates: Partial<AgentSettingsConfig>) => {
+  const updateConfig = async (updates: Partial<AgentSettingsConfig>): Promise<void> => {
     setConfig((prev) => {
       const nextConfig = { ...prev, ...updates };
-      // Fire and forget auto-save
       StorageService.saveAgentConfig(nextConfig).catch(console.error);
       return nextConfig;
     });
   };
 
-  const setProviderAndModel = (providerId: string, modelName: string) => {
+  const setProviderAndModel = (providerId: string, modelName: string): void => {
     updateConfig({ providerId, modelName });
   };
 
-  const toggleTool = (toolName: string, enabled: boolean) => {
+  const toggleTool = (toolName: string, enabled: boolean): void => {
     setConfig((prev) => {
       const toolSet = new Set(prev.enabledTools);
       if (enabled) {
@@ -59,13 +72,11 @@ export function useAgentSettings() {
       }
       const newTools = Array.from(toolSet);
       updateConfig({ enabledTools: newTools });
-      // updateConfig already calls setConfig, let's just use updateConfig and return prev to avoid double-render if it matters.
-      // Actually updateConfig's setConfig call is async, so we'll just do it there.
       return prev;
     });
   };
 
-  const toggleMcpServer = (serverId: string, enabled: boolean) => {
+  const toggleMcpServer = (serverId: string, enabled: boolean): void => {
     setConfig((prev) => {
       const serverSet = new Set(prev.enabledMcpServers);
       if (enabled) {
@@ -79,7 +90,7 @@ export function useAgentSettings() {
     });
   };
 
-  const toggleMcpTool = (toolName: string, enabled: boolean) => {
+  const toggleMcpTool = (toolName: string, enabled: boolean): void => {
     setConfig((prev) => {
       const disabledSet = new Set(prev.disabledMcpTools || []);
       if (enabled) {
@@ -93,7 +104,7 @@ export function useAgentSettings() {
     });
   };
 
-  const setSystemPrompt = (prompt: string) => {
+  const setSystemPrompt = (prompt: string): void => {
     updateConfig({ systemPrompt: prompt });
   };
 

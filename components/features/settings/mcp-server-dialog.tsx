@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Plus, X } from 'lucide-react';
-import type { McpServerConfig } from '@/lib/types/settings';
+import type { McpServerConfig } from '@/lib/types/agent';
 
 interface HeaderEntry {
   key: string;

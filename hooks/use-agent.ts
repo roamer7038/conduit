@@ -1,12 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-
-export interface Message {
-  role: 'user' | 'assistant' | 'error' | 'tool' | 'reasoning';
-  content: string;
-  type?: 'text' | 'image' | 'tool_call' | 'tool_result' | 'reasoning';
-  name?: string;
-}
+import type { Message } from '@/lib/types/message';
 
 function parseMessages(rawMessages: any[]): Message[] {
   return rawMessages.flatMap((m: any) => {

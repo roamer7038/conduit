@@ -9,8 +9,7 @@ import type {
   FetchMcpToolsResponse
 } from './message-types';
 import type { Thread, ThreadHistory, ChatMessageResponse } from '@/lib/types/message';
-import type { McpServerConfig, TestResult } from '@/lib/types/settings';
-import type { McpToolInfo } from '@/lib/types/agent';
+import type { McpServerConfig, TestResult, McpToolInfo } from '@/lib/types/agent';
 
 export class MessageBus {
   static async send<T = any>(request: MessageRequest): Promise<T> {

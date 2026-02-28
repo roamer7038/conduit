@@ -18,7 +18,7 @@ export default defineBackground(() => {
 
   // Initialize agent when config changes or on startup if config exists
   const initAgent = async () => {
-    const agentConfig = await StorageService.getAgentConfig();
+    const agentConfig = await StorageService.getActiveAgentConfig();
     const providers = await StorageService.getLlmProviders();
 
     if (agentConfig?.providerId) {
@@ -67,7 +67,11 @@ export default defineBackground(() => {
   });
 
   chrome.storage.onChanged.addListener((changes) => {
-    if (changes[STORAGE_KEYS.LLM_PROVIDERS] || changes[STORAGE_KEYS.AGENT_CONFIG] || changes[MCP_SERVERS_STORAGE_KEY]) {
+    if (
+      changes[STORAGE_KEYS.LLM_PROVIDERS] ||
+      changes[STORAGE_KEYS.AGENT_CONFIGS] ||
+      changes[MCP_SERVERS_STORAGE_KEY]
+    ) {
       initAgent();
     }
   });
@@ -118,7 +122,7 @@ export default defineBackground(() => {
           }
 
           case 'fetch_models': {
-            const agentConfig = await StorageService.getAgentConfig();
+            const agentConfig = await StorageService.getActiveAgentConfig();
             if (!agentConfig?.providerId) {
               sendResponse({ error: 'No LLM Provider selected in Agent Settings' });
               return;

@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
 import { Loader2, Plus, Pencil, Trash2, Wifi, WifiOff, Server } from 'lucide-react';
 import { McpServerDialog } from './mcp-server-dialog';
-import type { McpServerConfig, TestResult } from '@/lib/types/settings';
+import type { McpServerConfig, TestResult } from '@/lib/types/agent';
 
 interface McpServerSectionProps {
   servers: McpServerConfig[];

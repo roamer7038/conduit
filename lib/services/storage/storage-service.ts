@@ -1,8 +1,7 @@
 // lib/services/storage/storage-service.ts
 /// <reference types="chrome"/>
 import { STORAGE_KEYS } from './storage-keys';
-import type { LlmProviderConfig, AgentSettingsConfig } from '@/lib/types/agent';
-import type { McpServerConfig } from '@/lib/types/settings';
+import type { LlmProviderConfig, AgentSettingsConfig, McpServerConfig } from '@/lib/types/agent';
 import { CryptoService } from '../crypto/crypto-service';
 
 export class StorageError extends Error {
@@ -86,23 +85,91 @@ export class StorageService {
     }
   }
 
-  // Agent Settings Configuration
-  static async getAgentConfig(): Promise<AgentSettingsConfig | null> {
+  // Agent Settings Configuration (multi-agent)
+  static async getAgentConfigs(): Promise<AgentSettingsConfig[]> {
     try {
-      const config = await this.get<AgentSettingsConfig>(STORAGE_KEYS.AGENT_CONFIG);
-      return config || null;
+      const configs = await this.get<AgentSettingsConfig[]>(STORAGE_KEYS.AGENT_CONFIGS);
+      return configs || [];
+    } catch (error) {
+      console.error('[StorageService] Failed to get Agent Configs:', error);
+      throw new StorageError('Failed to get Agent Configs', error);
+    }
+  }
+
+  static async getAgentConfig(agentId: string): Promise<AgentSettingsConfig | null> {
+    try {
+      const configs = await this.getAgentConfigs();
+      return configs.find((c) => c.agentId === agentId) || null;
     } catch (error) {
       console.error('[StorageService] Failed to get Agent Config:', error);
       throw new StorageError('Failed to get Agent Config', error);
     }
   }
 
+  static async getActiveAgentId(): Promise<string | null> {
+    try {
+      return this.get<string>(STORAGE_KEYS.ACTIVE_AGENT_ID);
+    } catch (error) {
+      console.error('[StorageService] Failed to get active agent ID:', error);
+      throw new StorageError('Failed to get active agent ID', error);
+    }
+  }
+
+  static async setActiveAgentId(agentId: string): Promise<void> {
+    try {
+      await this.set(STORAGE_KEYS.ACTIVE_AGENT_ID, agentId);
+    } catch (error) {
+      console.error('[StorageService] Failed to set active agent ID:', error);
+      throw new StorageError('Failed to set active agent ID', error);
+    }
+  }
+
+  /**
+   * Returns the currently active agent config.
+   * Falls back to the default agent or the first available config.
+   */
+  static async getActiveAgentConfig(): Promise<AgentSettingsConfig | null> {
+    try {
+      const activeId = await this.getActiveAgentId();
+      const configs = await this.getAgentConfigs();
+      if (activeId) {
+        const found = configs.find((c) => c.agentId === activeId);
+        if (found) return found;
+      }
+      // Fallback: return default agent or first config
+      return configs.find((c) => c.agentId === 'default') || configs[0] || null;
+    } catch (error) {
+      console.error('[StorageService] Failed to get active Agent Config:', error);
+      throw new StorageError('Failed to get active Agent Config', error);
+    }
+  }
+
   static async saveAgentConfig(config: AgentSettingsConfig): Promise<void> {
     try {
-      await this.set(STORAGE_KEYS.AGENT_CONFIG, config);
+      const configs = await this.getAgentConfigs();
+      const idx = configs.findIndex((c) => c.agentId === config.agentId);
+      if (idx >= 0) {
+        configs[idx] = config;
+      } else {
+        configs.push(config);
+      }
+      await this.set(STORAGE_KEYS.AGENT_CONFIGS, configs);
     } catch (error) {
       console.error('[StorageService] Failed to save Agent Config:', error);
       throw new StorageError('Failed to save Agent Config', error);
+    }
+  }
+
+  static async deleteAgentConfig(agentId: string): Promise<void> {
+    try {
+      const configs = await this.getAgentConfigs();
+      await this.set(
+        STORAGE_KEYS.AGENT_CONFIGS,
+        configs.filter((c) => c.agentId !== agentId)
+      );
+    } catch (error) {
+      console.error('[StorageService] Failed to delete Agent Config:', error);
+      throw new StorageError('Failed to delete Agent Config', error);
     }
   }
 

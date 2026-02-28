@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { StorageService } from '@/lib/services/storage/storage-service';
 import { MessageBus } from '@/lib/services/message/message-bus';
-import type { McpServerConfig, TestResult } from '@/lib/types/settings';
+import type { McpServerConfig, TestResult } from '@/lib/types/agent';
 
 export function useMcpServers() {
   const [servers, setServers] = useState<McpServerConfig[]>([]);

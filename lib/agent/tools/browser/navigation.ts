@@ -96,27 +96,6 @@ export function createNavigationTools(): DynamicStructuredTool[] {
         await waitForLoad(tabId);
         return 'Page reloaded.';
       }
-    }),
-
-    // browser_web_search
-    new DynamicStructuredTool({
-      name: 'browser_web_search',
-      description:
-        'Search the web using Google by navigating the current tab to the search results page. Use browser_get_page_content afterwards to read the results.',
-      schema: z.object({
-        query: z.string().describe('The search query.')
-      }),
-      func: async ({ query }) => {
-        const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-        const tabId = await getActiveTabId();
-        await chrome.tabs.update(tabId, { url });
-        await waitForLoad(tabId);
-        return JSON.stringify({
-          tabId,
-          url,
-          message: 'Navigated to search results. Use browser_get_page_content to read them.'
-        });
-      }
     })
   ];
 }

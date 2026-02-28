@@ -5,6 +5,7 @@ import { createContentTools } from './content';
 import { createInteractionTools } from './interaction';
 import { createScreenshotTool } from './screenshot';
 import { createDownloadTool } from './download';
+import { createFetchTool } from './fetch';
 import { createTabTools } from './tabs';
 
 /**
@@ -18,6 +19,7 @@ export function createBrowserTools(): DynamicStructuredTool[] {
     ...createInteractionTools(),
     createScreenshotTool(),
     createDownloadTool(),
+    createFetchTool(),
     ...createTabTools()
   ];
 }
@@ -29,5 +31,6 @@ export {
   createInteractionTools,
   createScreenshotTool,
   createDownloadTool,
+  createFetchTool,
   createTabTools
 };

@@ -45,13 +45,14 @@ export const BROWSER_TOOL_META: ToolMeta[] = [
     description: '現在のページをリロードします。',
     category: 'navigation'
   },
-  {
-    name: 'browser_web_search',
-    label: 'ウェブ検索（Google）',
-    description: 'Google検索を現在のタブで実行します。',
-    category: 'navigation'
-  },
+
   // Content
+  {
+    name: 'browser_fetch_url',
+    label: 'URL情報の取得',
+    description: '指定URLの内容をFetch APIで取得します。',
+    category: 'content'
+  },
   {
     name: 'browser_get_page_content',
     label: 'ページテキストの取得',

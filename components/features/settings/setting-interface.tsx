@@ -17,7 +17,7 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
   const [activePage, setActivePage] = useState<SettingsPage>('menu');
 
   const { providers, addProvider, updateProvider, deleteProvider } = useLlmProviders();
-  const { config: agentConfig, setProviderAndModel, toggleTool, toggleMcpServer } = useAgentSettings();
+  const { config: agentConfig, setProviderAndModel, toggleTool, toggleMcpServer, toggleMcpTool } = useAgentSettings();
   const mcpServerProps = useMcpServers();
 
   const renderMenuContent = () => (
@@ -85,6 +85,7 @@ export function SettingsInterface({ onBack }: { onBack: () => void }) {
               setProviderAndModel={setProviderAndModel}
               toggleTool={toggleTool}
               toggleMcpServer={toggleMcpServer}
+              toggleMcpTool={toggleMcpTool}
             />
           </div>
         );

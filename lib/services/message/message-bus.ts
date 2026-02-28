@@ -5,10 +5,12 @@ import type {
   MessageResponse,
   ChatMessageRequest,
   GetThreadsResponse,
-  FetchModelsResponse
+  FetchModelsResponse,
+  FetchMcpToolsResponse
 } from './message-types';
 import type { Thread, ThreadHistory, ChatMessageResponse } from '@/lib/types/message';
 import type { McpServerConfig, TestResult } from '@/lib/types/settings';
+import type { McpToolInfo } from '@/lib/types/agent';
 
 export class MessageBus {
   static async send<T = any>(request: MessageRequest): Promise<T> {
@@ -65,5 +67,13 @@ export class MessageBus {
 
   static async clearModelCache(): Promise<void> {
     await this.send<{ success: true }>({ type: 'clear_model_cache' });
+  }
+
+  static async fetchMcpTools(serverId: string): Promise<McpToolInfo[]> {
+    const response = await this.send<FetchMcpToolsResponse>({
+      type: 'fetch_mcp_tools',
+      serverId
+    });
+    return response.tools;
   }
 }

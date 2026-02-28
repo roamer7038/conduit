@@ -7,7 +7,8 @@ const DEFAULT_CONFIG: AgentSettingsConfig = {
   providerId: '',
   modelName: '',
   enabledTools: [],
-  enabledMcpServers: []
+  enabledMcpServers: [],
+  disabledMcpTools: []
 };
 
 export function useAgentSettings() {
@@ -77,12 +78,27 @@ export function useAgentSettings() {
     });
   };
 
+  const toggleMcpTool = (toolName: string, enabled: boolean) => {
+    setConfig((prev) => {
+      const disabledSet = new Set(prev.disabledMcpTools || []);
+      if (enabled) {
+        disabledSet.delete(toolName);
+      } else {
+        disabledSet.add(toolName);
+      }
+      const newDisabled = Array.from(disabledSet);
+      updateConfig({ disabledMcpTools: newDisabled });
+      return prev;
+    });
+  };
+
   return {
     config,
     isLoaded,
     updateConfig,
     setProviderAndModel,
     toggleTool,
-    toggleMcpServer
+    toggleMcpServer,
+    toggleMcpTool
   };
 }

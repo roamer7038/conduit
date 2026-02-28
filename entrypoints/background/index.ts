@@ -7,7 +7,7 @@ import { STORAGE_KEYS } from '@/lib/services/storage/storage-keys';
 import { CryptoService } from '@/lib/services/crypto/crypto-service';
 import { handleChatMessage } from './handlers/chat-handler';
 import { handleGetThreads, handleGetThreadHistory, handleDeleteThread } from './handlers/thread-handler';
-import { handleTestMcpConnection } from './handlers/mcp-handler';
+import { handleTestMcpConnection, handleFetchMcpTools } from './handlers/mcp-handler';
 import { handleFetchModels, handleClearModelCache } from './handlers/model-handler';
 
 export default defineBackground(() => {
@@ -138,6 +138,12 @@ export default defineBackground(() => {
 
           case 'clear_model_cache': {
             const result = await handleClearModelCache();
+            sendResponse(result);
+            break;
+          }
+
+          case 'fetch_mcp_tools': {
+            const result = await handleFetchMcpTools(request.serverId);
             sendResponse(result);
             break;
           }

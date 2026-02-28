@@ -2,6 +2,7 @@
 import type { McpServerConfig } from '@/lib/types/settings';
 import type { Thread, ThreadHistory, ChatMessageResponse } from '@/lib/types/message';
 import type { TestResult } from '@/lib/types/settings';
+import type { McpToolInfo } from '@/lib/types/agent';
 
 export type MessageRequest =
   | { type: 'chat_message'; message: any; threadId?: string }
@@ -10,7 +11,8 @@ export type MessageRequest =
   | { type: 'delete_thread'; threadId: string }
   | { type: 'test_mcp_connection'; server: McpServerConfig }
   | { type: 'fetch_models' }
-  | { type: 'clear_model_cache' };
+  | { type: 'clear_model_cache' }
+  | { type: 'fetch_mcp_tools'; serverId: string };
 
 export type MessageResponse<T = any> = { error: string } | (T extends void ? { success: true } : T);
 
@@ -22,6 +24,7 @@ export type DeleteThreadRequest = Extract<MessageRequest, { type: 'delete_thread
 export type TestMcpConnectionRequest = Extract<MessageRequest, { type: 'test_mcp_connection' }>;
 export type FetchModelsRequest = Extract<MessageRequest, { type: 'fetch_models' }>;
 export type ClearModelCacheRequest = Extract<MessageRequest, { type: 'clear_model_cache' }>;
+export type FetchMcpToolsRequest = Extract<MessageRequest, { type: 'fetch_mcp_tools' }>;
 
 export interface GetThreadsResponse {
   threads: Thread[];
@@ -29,4 +32,8 @@ export interface GetThreadsResponse {
 
 export interface FetchModelsResponse {
   models: string[];
+}
+
+export interface FetchMcpToolsResponse {
+  tools: McpToolInfo[];
 }

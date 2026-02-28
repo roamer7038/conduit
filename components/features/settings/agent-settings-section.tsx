@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,11 +13,13 @@ import {
 } from '@/components/ui/combobox';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Puzzle, Server, Cpu } from 'lucide-react';
-import type { LlmProviderConfig, AgentSettingsConfig } from '@/lib/types/agent';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { Puzzle, Server, Cpu, Loader2 } from 'lucide-react';
+import type { LlmProviderConfig, AgentSettingsConfig, McpToolInfo } from '@/lib/types/agent';
 import type { McpServerConfig } from '@/lib/types/settings';
 import { getAllToolNames, BROWSER_TOOL_META } from '@/lib/agent/tools/tool-meta';
 import { useModelSelection } from '@/hooks/use-model-selection';
+import { MessageBus } from '@/lib/services/message/message-bus';
 
 interface AgentSettingsSectionProps {
   agentConfig: AgentSettingsConfig;
@@ -26,6 +28,7 @@ interface AgentSettingsSectionProps {
   setProviderAndModel: (providerId: string, modelName: string) => void;
   toggleTool: (toolName: string, enabled: boolean) => void;
   toggleMcpServer: (serverId: string, enabled: boolean) => void;
+  toggleMcpTool: (toolName: string, enabled: boolean) => void;
 }
 
 export function AgentSettingsSection({
@@ -34,7 +37,8 @@ export function AgentSettingsSection({
   mcpServers,
   setProviderAndModel,
   toggleTool,
-  toggleMcpServer
+  toggleMcpServer,
+  toggleMcpTool
 }: AgentSettingsSectionProps) {
   const currentProvider = providers.find((p) => p.id === agentConfig.providerId);
 
@@ -66,6 +70,36 @@ export function AgentSettingsSection({
   };
 
   const comboboxAnchor = useComboboxAnchor();
+
+  // --- MCP Tool Discovery ---
+  const [mcpToolsByServer, setMcpToolsByServer] = useState<Record<string, McpToolInfo[]>>({});
+  const [mcpToolsLoading, setMcpToolsLoading] = useState<Record<string, boolean>>({});
+
+  const fetchToolsForServer = useCallback(
+    async (serverId: string) => {
+      if (mcpToolsByServer[serverId] || mcpToolsLoading[serverId]) return;
+      setMcpToolsLoading((prev) => ({ ...prev, [serverId]: true }));
+      try {
+        const tools = await MessageBus.fetchMcpTools(serverId);
+        setMcpToolsByServer((prev) => ({ ...prev, [serverId]: tools }));
+      } catch (error) {
+        console.error(`Failed to fetch MCP tools for server ${serverId}:`, error);
+        setMcpToolsByServer((prev) => ({ ...prev, [serverId]: [] }));
+      } finally {
+        setMcpToolsLoading((prev) => ({ ...prev, [serverId]: false }));
+      }
+    },
+    [mcpToolsByServer, mcpToolsLoading]
+  );
+
+  // Auto-fetch tools when a server is enabled
+  useEffect(() => {
+    for (const serverId of agentConfig.enabledMcpServers) {
+      if (!mcpToolsByServer[serverId] && !mcpToolsLoading[serverId]) {
+        fetchToolsForServer(serverId);
+      }
+    }
+  }, [agentConfig.enabledMcpServers, fetchToolsForServer, mcpToolsByServer, mcpToolsLoading]);
 
   return (
     <div className='space-y-8'>
@@ -198,24 +232,77 @@ export function AgentSettingsSection({
                 MCPサーバが登録されていません。「MCPサーバ」設定から追加してください。
               </p>
             ) : (
-              mcpServers.map((server) => (
-                <div key={server.id} className='flex items-center justify-between p-4 bg-card text-card-foreground'>
-                  <div className='space-y-1'>
-                    <Label htmlFor={`mcp-agent-${server.id}`} className='text-sm font-medium flex items-center gap-2'>
-                      {server.name}
-                      <Badge variant='outline' className='text-[10px]'>
-                        {server.transport.toUpperCase()}
-                      </Badge>
-                    </Label>
-                    <p className='text-xs text-muted-foreground truncate'>{server.url}</p>
+              mcpServers.map((server) => {
+                const isEnabled = agentConfig.enabledMcpServers.includes(server.id);
+                const serverTools = mcpToolsByServer[server.id];
+                const isToolsLoading = mcpToolsLoading[server.id];
+                const disabledMcpTools = agentConfig.disabledMcpTools || [];
+
+                return (
+                  <div key={server.id} className='bg-card text-card-foreground'>
+                    <div className='flex items-center justify-between p-4'>
+                      <div className='space-y-1'>
+                        <Label
+                          htmlFor={`mcp-agent-${server.id}`}
+                          className='text-sm font-medium flex items-center gap-2'
+                        >
+                          {server.name}
+                          <Badge variant='outline' className='text-[10px]'>
+                            {server.transport.toUpperCase()}
+                          </Badge>
+                        </Label>
+                        <p className='text-xs text-muted-foreground truncate'>{server.url}</p>
+                      </div>
+                      <Switch
+                        id={`mcp-agent-${server.id}`}
+                        checked={isEnabled}
+                        onCheckedChange={(checked) => toggleMcpServer(server.id, checked)}
+                      />
+                    </div>
+
+                    {isEnabled && (
+                      <div className='px-4 pb-4'>
+                        {isToolsLoading ? (
+                          <div className='flex items-center gap-2 text-xs text-muted-foreground py-2'>
+                            <Loader2 className='w-3 h-3 animate-spin' />
+                            ツールを取得中...
+                          </div>
+                        ) : serverTools && serverTools.length > 0 ? (
+                          <Accordion type='single' collapsible>
+                            <AccordionItem value={`mcp-tools-${server.id}`} className='border rounded-md'>
+                              <AccordionTrigger className='px-3 py-2 text-xs text-muted-foreground hover:no-underline'>
+                                ツール一覧（{serverTools.length}個）
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className='divide-y'>
+                                  {serverTools.map((tool) => (
+                                    <div key={tool.name} className='flex items-center justify-between px-3 py-2'>
+                                      <div className='space-y-0.5 min-w-0 flex-1 mr-3'>
+                                        <p className='text-xs font-medium truncate'>{tool.name}</p>
+                                        {tool.description && (
+                                          <p className='text-[11px] text-muted-foreground line-clamp-2'>
+                                            {tool.description}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <Switch
+                                        checked={!disabledMcpTools.includes(tool.name)}
+                                        onCheckedChange={(checked) => toggleMcpTool(tool.name, checked)}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+                        ) : serverTools && serverTools.length === 0 ? (
+                          <p className='text-xs text-muted-foreground py-2'>このサーバにはツールがありません。</p>
+                        ) : null}
+                      </div>
+                    )}
                   </div>
-                  <Switch
-                    id={`mcp-agent-${server.id}`}
-                    checked={agentConfig.enabledMcpServers.includes(server.id)}
-                    onCheckedChange={(checked) => toggleMcpServer(server.id, checked)}
-                  />
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </Card>

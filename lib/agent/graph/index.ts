@@ -46,6 +46,7 @@ export async function createLangGraphAgent(config: GraphAgentConfig) {
   const agentSettings = await StorageService.getAgentConfig();
   const enabledBrowserTools = agentSettings?.enabledTools || getAllToolNames();
   const enabledMcpServers = agentSettings?.enabledMcpServers || [];
+  const disabledMcpTools = agentSettings?.disabledMcpTools || [];
 
   const browserTools = allBrowserTools.filter((t) => enabledBrowserTools.includes(t.name));
 
@@ -58,8 +59,9 @@ export async function createLangGraphAgent(config: GraphAgentConfig) {
     console.log(`Loaded ${mcpTools.length} MCP tool(s) from remote server(s).`);
   }
 
-  // 4. Combine all tools
-  const tools: DynamicStructuredTool[] = [...browserTools, ...mcpTools];
+  // 4. Combine all tools (filter out disabled MCP tools)
+  const filteredMcpTools = mcpTools.filter((t) => !disabledMcpTools.includes(t.name));
+  const tools: DynamicStructuredTool[] = [...browserTools, ...filteredMcpTools];
 
   // 5. Initialize Checkpointer
   const checkpointer = new ChromeStorageCheckpointer();

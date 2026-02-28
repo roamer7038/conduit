@@ -18,4 +18,12 @@ export interface AgentSettingsConfig {
   modelName: string;
   enabledTools: string[];
   enabledMcpServers: string[];
+  disabledMcpTools: string[];
+}
+
+/** Lightweight tool info returned from MCP server discovery. */
+export interface McpToolInfo {
+  name: string;
+  description: string;
+  serverName: string;
 }

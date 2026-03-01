@@ -1,4 +1,13 @@
-// lib/types/agent.ts
+import { createAgent } from 'langchain';
+import type { BaseMessage } from '@langchain/core/messages';
+
+export type AgentExecutorType = ReturnType<typeof createAgent>;
+
+export interface ChatRequestMessage {
+  message: BaseMessage | Record<string, unknown> | string;
+  threadId?: string;
+}
+
 export interface AgentConfig {
   apiKey: string;
   baseUrl?: string;

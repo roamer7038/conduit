@@ -9,12 +9,13 @@ import { handleChatMessage } from './handlers/chat-handler';
 import { handleGetThreads, handleGetThreadHistory, handleDeleteThread } from './handlers/thread-handler';
 import { handleTestMcpConnection, handleFetchMcpTools } from './handlers/mcp-handler';
 import { handleFetchModels, handleClearModelCache } from './handlers/model-handler';
+import type { AgentExecutorType } from '@/lib/types/agent';
 
 export default defineBackground(() => {
   // アイコンクリック時にサイドパネルを自動で開く
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
-  let agentExecutor: any = null;
+  let agentExecutor: AgentExecutorType | null = null;
 
   // Initialize agent when config changes or on startup if config exists
   const initAgent = async () => {

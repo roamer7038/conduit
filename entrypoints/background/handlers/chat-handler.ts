@@ -4,10 +4,11 @@ import { v4 as uuidv4 } from 'uuid';
 import type { ChatMessageResponse } from '@/lib/types/message';
 import { StorageService } from '@/lib/services/storage/storage-service';
 import { mapRawMessages } from '@/lib/agent/message-mapper';
+import type { AgentExecutorType, ChatRequestMessage } from '@/lib/types/agent';
 
 export async function handleChatMessage(
-  request: { message: any; threadId?: string },
-  agentExecutor: any,
+  request: ChatRequestMessage,
+  agentExecutor: AgentExecutorType,
   port?: chrome.runtime.Port
 ): Promise<ChatMessageResponse | void> {
   const { message, threadId } = request;
@@ -57,7 +58,8 @@ export async function handleChatMessage(
 
       // We need the final state to return everything structured properly.
       const currentState = await agentExecutor.getState(config);
-      const rawMessages = currentState.values?.messages || [];
+      const stateValues = (currentState as Record<string, any>).values || {};
+      const rawMessages = stateValues.messages || [];
       const messages = mapRawMessages(rawMessages);
 
       const screenshots = await StorageService.getScreenshots(config.configurable.thread_id);

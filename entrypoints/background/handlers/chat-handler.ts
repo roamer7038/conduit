@@ -3,9 +3,31 @@
 import { v4 as uuidv4 } from 'uuid';
 import { SystemMessage } from '@langchain/core/messages';
 import type { ChatMessageResponse } from '@/lib/types/message';
+import type { ThreadTokenUsage } from '@/lib/types/message';
 import { StorageService } from '@/lib/services/storage/storage-service';
 import { mapRawMessages } from '@/lib/agent/message-mapper';
+import type { MappedMessage } from '@/lib/agent/message-mapper';
 import type { AgentExecutorType, ChatRequestMessage } from '@/lib/types/agent';
+
+/**
+ * Extracts token usage from the latest AI message in the thread.
+ * This reflects the current context window usage rather than cumulative totals,
+ * which is important when summarization middleware compresses older messages.
+ */
+function getLatestTokenUsage(messages: MappedMessage[]): ThreadTokenUsage {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.type === 'ai' && msg.usage_metadata) {
+      return {
+        inputTokens: msg.usage_metadata.input_tokens,
+        outputTokens: msg.usage_metadata.output_tokens,
+        totalTokens: msg.usage_metadata.total_tokens
+      };
+    }
+  }
+
+  return { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+}
 
 export async function handleChatMessage(
   request: ChatRequestMessage,
@@ -59,9 +81,10 @@ export async function handleChatMessage(
 
       // We need the final state to return everything structured properly.
       const currentState = await agentExecutor.getState(config);
-      const stateValues = (currentState as Record<string, any>).values || {};
-      const rawMessages = stateValues.messages || [];
-      const messages = mapRawMessages(rawMessages);
+      const stateValues = (currentState as Record<string, unknown>).values || {};
+      const rawMessages = (stateValues as Record<string, unknown>).messages || [];
+      const messages = mapRawMessages(rawMessages as unknown[]);
+      const totalUsage = getLatestTokenUsage(messages);
 
       const screenshots = await StorageService.getScreenshots(config.configurable.thread_id);
 
@@ -72,12 +95,13 @@ export async function handleChatMessage(
           messages,
           screenshots,
           threadId: config.configurable.thread_id,
-          screenshotDataUrl: screenshotDataUrl || undefined
+          screenshotDataUrl: screenshotDataUrl || undefined,
+          totalUsage
         }
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = (error instanceof Error ? error.message : String(error)) || 'Stream failed';
       console.error('Streaming error:', error);
-      const errorMessage = error.message || 'Stream failed';
       port.postMessage({ type: 'error', error: errorMessage });
       try {
         await agentExecutor.updateState(config, {
@@ -107,6 +131,7 @@ export async function handleChatMessage(
   // Generate mapped messages
   const rawMessages = result.messages || [];
   const messages = mapRawMessages(rawMessages);
+  const totalUsage = getLatestTokenUsage(messages);
 
   const screenshots = await StorageService.getScreenshots(config.configurable.thread_id);
 
@@ -115,6 +140,7 @@ export async function handleChatMessage(
     messages,
     screenshots,
     threadId: config.configurable.thread_id,
-    screenshotDataUrl: screenshotDataUrl || undefined
+    screenshotDataUrl: screenshotDataUrl || undefined,
+    totalUsage
   };
 }

@@ -10,8 +10,13 @@ export interface MappedMessage {
   content: string;
   id?: string;
   name?: string;
-  tool_calls: any[];
-  additional_kwargs: Record<string, any>;
+  tool_calls: unknown[];
+  additional_kwargs: Record<string, unknown>;
+  usage_metadata?: {
+    input_tokens: number;
+    output_tokens: number;
+    total_tokens: number;
+  };
 }
 
 /**
@@ -19,13 +24,20 @@ export interface MappedMessage {
  *
  * This was previously duplicated across chat-handler.ts and thread-handler.ts.
  */
-export function mapRawMessages(rawMessages: any[]): MappedMessage[] {
-  return rawMessages.map((m: any) => ({
-    type: (typeof m.getType === 'function' ? m.getType() : m.type) || (m.id?.includes('Human') ? 'human' : 'ai'),
-    content: m.content,
-    id: m.id,
-    name: m.name,
-    tool_calls: m.tool_calls || [],
-    additional_kwargs: m.additional_kwargs || {}
-  }));
+export function mapRawMessages(rawMessages: unknown[]): MappedMessage[] {
+  return (rawMessages as Record<string, unknown>[]).map((m) => {
+    const getType = m.getType;
+    const type =
+      (typeof getType === 'function' ? (getType as () => string)() : m.type) ||
+      (m.id?.toString().includes('Human') ? 'human' : 'ai');
+    return {
+      type: type as string,
+      content: m.content as string,
+      id: m.id as string | undefined,
+      name: m.name as string | undefined,
+      tool_calls: (m.tool_calls as unknown[]) || [],
+      additional_kwargs: (m.additional_kwargs as Record<string, unknown>) || {},
+      usage_metadata: m.usage_metadata as MappedMessage['usage_metadata'] | undefined
+    };
+  });
 }

@@ -5,14 +5,14 @@ import { useAgent } from '@/hooks/use-agent';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
-import { Settings, Send, Loader2, User, Bot, History, Plus, ChevronsUp, ChevronsDown } from 'lucide-react';
+import { Settings, Send, Loader2, User, Bot, History, Plus, ChevronsUp, ChevronsDown, BarChart3 } from 'lucide-react';
 import clsx from 'clsx';
 import { SidePanelHeader } from '@/components/layouts/side-panel-header';
 import { SidePanelLayout } from '@/components/layouts/side-panel-layout';
 import { MarkdownRenderer } from './markdown-renderer';
 
 export function ChatInterface({ onSettings, onHistory }: { onSettings: () => void; onHistory: () => void }) {
-  const { messages, isLoading, sendMessage, startNewThread } = useAgent();
+  const { messages, isLoading, sendMessage, startNewThread, tokenUsage } = useAgent();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesTopRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -263,8 +263,24 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
             disabled={isLoading}
             rows={1}
           />
-          <div className='flex justify-between items-center px-2 pb-2 pt-1 bg-transparent'>
-            <div className='flex items-center gap-2 text-muted-foreground'>{/* 将来的なオプションのスペース */}</div>
+          <div className='flex justify-between items-center pl-4 pr-2 pb-2 pt-1 bg-transparent'>
+            <div className='flex items-center gap-2 text-muted-foreground'>
+              {tokenUsage && tokenUsage.totalTokens > 0 && (
+                <div className='group relative flex items-center gap-1 text-[11px] text-muted-foreground cursor-default'>
+                  <BarChart3 className='w-3 h-3' />
+                  <span>{tokenUsage.totalTokens.toLocaleString()} tokens</span>
+                  <div className='absolute bottom-full left-0 mb-1.5 hidden group-hover:block z-30'>
+                    <div className='bg-popover text-popover-foreground border rounded-md px-3 py-2 text-[11px] shadow-md whitespace-nowrap'>
+                      <div className='flex flex-col gap-0.5'>
+                        <span>Input: {tokenUsage.inputTokens.toLocaleString()}</span>
+                        <span>Output: {tokenUsage.outputTokens.toLocaleString()}</span>
+                        <span className='text-muted-foreground/70 pt-0.5 border-t mt-0.5'>Last turn usage</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
             <Button size='icon' onClick={handleSend} disabled={isLoading} className='h-8 w-8 rounded-full shrink-0'>
               <Send className='w-4 h-4' />
             </Button>

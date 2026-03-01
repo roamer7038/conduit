@@ -1,33 +1,35 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { Message } from '@/lib/types/message';
+import type { Message, ThreadTokenUsage } from '@/lib/types/message';
 
-function parseMessages(rawMessages: any[]): Message[] {
-  return rawMessages.flatMap((m: any) => {
+function parseMessages(rawMessages: Record<string, unknown>[]): Message[] {
+  return rawMessages.flatMap((m) => {
     const msgs: Message[] = [];
     const msgType =
-      (typeof m.getType === 'function' ? m.getType() : m.type) ||
-      (m.id?.includes('AI') ? 'ai' : m.id?.includes('Human') ? 'human' : null);
+      (typeof m.getType === 'function' ? (m.getType as () => string)() : m.type) ||
+      (m.id?.toString().includes('AI') ? 'ai' : m.id?.toString().includes('Human') ? 'human' : null);
 
     if (msgType === 'human') {
       const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
       msgs.push({ role: 'user', content, type: 'text' });
     } else if (msgType === 'ai') {
-      if (m.additional_kwargs?.reasoning_content) {
-        msgs.push({ role: 'reasoning', content: m.additional_kwargs.reasoning_content, type: 'reasoning' });
+      const additionalKwargs = (m.additional_kwargs || {}) as Record<string, unknown>;
+      if (additionalKwargs.reasoning_content) {
+        msgs.push({ role: 'reasoning', content: additionalKwargs.reasoning_content as string, type: 'reasoning' });
       }
-      if (m.tool_calls && m.tool_calls.length > 0) {
-        m.tool_calls.forEach((tc: any) => {
-          msgs.push({ role: 'tool', content: JSON.stringify(tc.args), name: tc.name, type: 'tool_call' });
+      if (m.tool_calls && (m.tool_calls as unknown[]).length > 0) {
+        (m.tool_calls as Record<string, unknown>[]).forEach((tc) => {
+          msgs.push({ role: 'tool', content: JSON.stringify(tc.args), name: tc.name as string, type: 'tool_call' });
         });
       }
       const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
       if (content && content.trim() && content !== '""' && content !== '{}') {
-        msgs.push({ role: 'assistant', content, type: 'text' });
+        const usageMetadata = m.usage_metadata as Message['usageMetadata'] | undefined;
+        msgs.push({ role: 'assistant', content, type: 'text', usageMetadata });
       }
     } else if (msgType === 'tool') {
       const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
-      msgs.push({ role: 'tool', content, name: m.name, type: 'tool_result' });
+      msgs.push({ role: 'tool', content, name: m.name as string, type: 'tool_result' });
     } else if (msgType === 'system' || msgType === 'error') {
       const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
       msgs.push({ role: 'error', content, type: 'text' });
@@ -36,10 +38,10 @@ function parseMessages(rawMessages: any[]): Message[] {
   });
 }
 
-function getFinalMessages(response: any): Message[] {
+function getFinalMessages(response: Record<string, unknown>): Message[] {
   if (!response.messages) return [];
-  const formattedMessages = parseMessages(response.messages);
-  const screenshots: string[] = response.screenshots ?? [];
+  const formattedMessages = parseMessages(response.messages as Record<string, unknown>[]);
+  const screenshots: string[] = (response.screenshots as string[]) ?? [];
   const screenshotMessages: Message[] = screenshots.map((url) => ({
     role: 'assistant',
     content: url,
@@ -52,6 +54,7 @@ export function useAgent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [threadId, setThreadId] = useState<string>('');
+  const [tokenUsage, setTokenUsage] = useState<ThreadTokenUsage | null>(null);
 
   // Load message history when threadId changes
   useEffect(() => {
@@ -63,9 +66,13 @@ export function useAgent() {
         })
         .then((response) => {
           setMessages(getFinalMessages(response));
+          if (response.totalUsage) {
+            setTokenUsage(response.totalUsage);
+          }
         });
     } else {
       setMessages([]);
+      setTokenUsage(null);
     }
   }, [threadId]);
 
@@ -161,6 +168,9 @@ export function useAgent() {
                 { role: 'assistant', content: msg.response.screenshotDataUrl, type: 'image' }
               ]);
             }
+            if (msg.response.totalUsage) {
+              setTokenUsage(msg.response.totalUsage);
+            }
             if (msg.response.threadId) {
               setThreadId(msg.response.threadId);
             }
@@ -176,11 +186,9 @@ export function useAgent() {
         port.onDisconnect.addListener(() => {
           setIsLoading(false);
         });
-      } catch (error: any) {
-        setMessages((prev) => [
-          ...prev,
-          { role: 'error', content: error.message || 'Failed to send message', type: 'text' }
-        ]);
+      } catch (error: unknown) {
+        const errorMsg = error instanceof Error ? error.message : 'Failed to send message';
+        setMessages((prev) => [...prev, { role: 'error', content: errorMsg, type: 'text' }]);
         setIsLoading(false);
       }
     },
@@ -190,6 +198,7 @@ export function useAgent() {
   const startNewThread = useCallback(() => {
     setThreadId('');
     setMessages([]);
+    setTokenUsage(null);
     chrome.storage.local.remove('lastActiveThreadId');
   }, []);
 
@@ -198,6 +207,7 @@ export function useAgent() {
     isLoading,
     sendMessage,
     startNewThread,
-    setThreadId
+    setThreadId,
+    tokenUsage
   };
 }

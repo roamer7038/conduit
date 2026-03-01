@@ -155,7 +155,10 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
               return (
                 <div key={idx} className='flex justify-start mb-4 w-full'>
                   <Accordion type='single' collapsible className='w-full max-w-[95%]'>
-                    <AccordionItem value={`reasoning-${idx}`} className='border rounded-md bg-muted/30 px-3'>
+                    <AccordionItem
+                      value={`reasoning-${idx}`}
+                      className='border rounded-md bg-muted/30 px-3 last:border-b'
+                    >
                       <AccordionTrigger className='py-2 text-xs text-muted-foreground hover:no-underline'>
                         <span className='flex items-center gap-2'>
                           <Bot className='w-3 h-3' />
@@ -175,7 +178,7 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
               return (
                 <div key={idx} className='flex justify-start mb-4 w-full'>
                   <Accordion type='single' collapsible className='w-full max-w-[95%]'>
-                    <AccordionItem value={`tool-${idx}`} className='border rounded-md bg-muted/30 px-3'>
+                    <AccordionItem value={`tool-${idx}`} className='border rounded-md bg-muted/30 px-3 last:border-b'>
                       <AccordionTrigger className='py-2 text-xs text-muted-foreground hover:no-underline'>
                         <span className='flex items-center gap-2'>
                           <Settings className='w-3 h-3' />

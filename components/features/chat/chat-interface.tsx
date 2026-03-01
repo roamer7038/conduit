@@ -253,19 +253,22 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
       </div>
 
       {/* Input エリア（固定） */}
-      <div className='shrink-0 px-3 py-2 border-t bg-background z-10'>
-        <div className='flex gap-2 items-end'>
+      <div className='shrink-0 px-4 py-3 border-t bg-background z-10'>
+        <div className='flex flex-col rounded-xl border bg-background focus-within:ring-1 focus-within:ring-ring focus-within:border-primary shadow-sm transition-colors'>
           <Textarea
             ref={inputRef}
-            className='flex-1 min-h-[36px] max-h-[120px] resize-none text-sm'
+            className='min-h-[36px] max-h-[120px] resize-none border-0 focus-visible:ring-0 shadow-none text-sm p-3 rounded-t-xl rounded-b-none'
             placeholder='Type a message...'
             onKeyDown={handleKeyDown}
             disabled={isLoading}
             rows={1}
           />
-          <Button size='icon' onClick={handleSend} disabled={isLoading} className='h-8 w-8'>
-            <Send className='w-4 h-4' />
-          </Button>
+          <div className='flex justify-between items-center px-2 pb-2 pt-1 bg-transparent'>
+            <div className='flex items-center gap-2 text-muted-foreground'>{/* 将来的なオプションのスペース */}</div>
+            <Button size='icon' onClick={handleSend} disabled={isLoading} className='h-8 w-8 rounded-full shrink-0'>
+              <Send className='w-4 h-4' />
+            </Button>
+          </div>
         </div>
       </div>
     </SidePanelLayout>

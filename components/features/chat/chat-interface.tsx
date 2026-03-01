@@ -114,7 +114,7 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
       />
 
       {/* Messages（スクロール可能エリア） */}
-      <div ref={scrollContainerRef} className='flex-1 overflow-y-auto px-4 py-4' onScroll={handleScroll}>
+      <div ref={scrollContainerRef} className='relative flex-1 overflow-y-auto px-4 py-4' onScroll={handleScroll}>
         <div ref={messagesTopRef} />
 
         <div className='space-y-4'>
@@ -225,7 +225,7 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
 
         {/* スクロールジャンプボタン */}
         {(showScrollTop || showScrollBottom) && (
-          <div className='fixed bottom-24 right-4 flex flex-col gap-1.5 z-20'>
+          <div className='sticky bottom-2 ml-auto mr-0 w-fit flex flex-col gap-1.5 z-20'>
             {showScrollTop && (
               <Button
                 size='icon'

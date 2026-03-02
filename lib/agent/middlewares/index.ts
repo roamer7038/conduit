@@ -1,12 +1,12 @@
 import { summarizationMiddleware, todoListMiddleware, toolCallLimitMiddleware } from 'langchain';
 import type { AgentMiddleware } from 'langchain';
-import type { BaseLanguageModel } from '@langchain/core/language_models/base';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { AgentSettingsConfig } from '../../types/agent';
 
 const DEFAULT_RUN_LIMIT = 20;
 
 export function getAgentMiddlewares(
-  model: BaseLanguageModel,
+  model: BaseChatModel,
   agentSettings: AgentSettingsConfig | null,
   mcpToolNames: string[] = []
 ): AgentMiddleware[] {

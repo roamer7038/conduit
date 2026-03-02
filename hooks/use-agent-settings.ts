@@ -58,7 +58,12 @@ export function useAgentSettings(agentId?: string) {
   const updateConfig = async (updates: Partial<AgentSettingsConfig>): Promise<void> => {
     setConfig((prev) => {
       const nextConfig = { ...prev, ...updates };
-      StorageService.saveAgentConfig(nextConfig).catch(console.error);
+      // React state update is synchronous within the functional update conceptually,
+      // but we should trigger the storage save outside or carefully.
+      // To ensure consistency, we save the fully computed nextConfig.
+      StorageService.saveAgentConfig(nextConfig).catch((err) => {
+        console.error('[useAgentSettings] Failed to save config:', err);
+      });
       return nextConfig;
     });
   };
@@ -76,8 +81,9 @@ export function useAgentSettings(agentId?: string) {
         toolSet.delete(toolName);
       }
       const newTools = Array.from(toolSet);
-      updateConfig({ enabledTools: newTools });
-      return prev;
+      const nextConfig = { ...prev, enabledTools: newTools };
+      StorageService.saveAgentConfig(nextConfig).catch(console.error);
+      return nextConfig;
     });
   };
 
@@ -90,8 +96,9 @@ export function useAgentSettings(agentId?: string) {
         serverSet.delete(serverId);
       }
       const newServers = Array.from(serverSet);
-      updateConfig({ enabledMcpServers: newServers });
-      return prev;
+      const nextConfig = { ...prev, enabledMcpServers: newServers };
+      StorageService.saveAgentConfig(nextConfig).catch(console.error);
+      return nextConfig;
     });
   };
 
@@ -104,8 +111,9 @@ export function useAgentSettings(agentId?: string) {
         disabledSet.add(toolName);
       }
       const newDisabled = Array.from(disabledSet);
-      updateConfig({ disabledMcpTools: newDisabled });
-      return prev;
+      const nextConfig = { ...prev, disabledMcpTools: newDisabled };
+      StorageService.saveAgentConfig(nextConfig).catch(console.error);
+      return nextConfig;
     });
   };
 
@@ -122,8 +130,9 @@ export function useAgentSettings(agentId?: string) {
         middlewareSet.delete(middlewareName);
       }
       const newMiddlewares = Array.from(middlewareSet);
-      updateConfig({ enabledMiddlewares: newMiddlewares });
-      return prev;
+      const nextConfig = { ...prev, enabledMiddlewares: newMiddlewares };
+      StorageService.saveAgentConfig(nextConfig).catch(console.error);
+      return nextConfig;
     });
   };
 
@@ -133,8 +142,9 @@ export function useAgentSettings(agentId?: string) {
         ...prev.middlewareSettings,
         ...settings
       };
-      updateConfig({ middlewareSettings: newSettings });
-      return prev;
+      const nextConfig = { ...prev, middlewareSettings: newSettings };
+      StorageService.saveAgentConfig(nextConfig).catch(console.error);
+      return nextConfig;
     });
   };
 

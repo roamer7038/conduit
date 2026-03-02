@@ -25,17 +25,13 @@ export async function handleGetThreadHistory(
   const rawMessages = ((stateValues as Record<string, unknown>).messages || []) as unknown[];
   const messages = mapRawMessages(rawMessages);
 
-  // Extract token usage from the latest AI message
-  let totalUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i] as MappedMessage;
+  // Extract cumulative token usage from all AI messages
+  const totalUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+  for (const msg of messages as MappedMessage[]) {
     if (msg.type === 'ai' && msg.usage_metadata) {
-      totalUsage = {
-        inputTokens: msg.usage_metadata.input_tokens,
-        outputTokens: msg.usage_metadata.output_tokens,
-        totalTokens: msg.usage_metadata.total_tokens
-      };
-      break;
+      totalUsage.inputTokens += msg.usage_metadata.input_tokens;
+      totalUsage.outputTokens += msg.usage_metadata.output_tokens;
+      totalUsage.totalTokens += msg.usage_metadata.total_tokens;
     }
   }
 

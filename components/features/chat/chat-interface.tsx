@@ -274,7 +274,7 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
                       <div className='flex flex-col gap-0.5'>
                         <span>Input: {tokenUsage.inputTokens.toLocaleString()}</span>
                         <span>Output: {tokenUsage.outputTokens.toLocaleString()}</span>
-                        <span className='text-muted-foreground/70 pt-0.5 border-t mt-0.5'>Last turn usage</span>
+                        <span className='text-muted-foreground/70 pt-0.5 border-t mt-0.5'>Total thread usage</span>
                       </div>
                     </div>
                   </div>

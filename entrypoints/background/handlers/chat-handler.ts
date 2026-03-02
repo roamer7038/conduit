@@ -12,23 +12,20 @@ import type { AgentExecutorType, ChatRequestMessage } from '@/lib/types/agent';
 const DEFAULT_RECURSION_LIMIT = 100;
 
 /**
- * Extracts token usage from the latest AI message in the thread.
- * This reflects the current context window usage rather than cumulative totals,
- * which is important when summarization middleware compresses older messages.
+ * Extracts and sums token usage from all AI messages in the thread.
  */
-function getLatestTokenUsage(messages: MappedMessage[]): ThreadTokenUsage {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
+function getCumulativeTokenUsage(messages: MappedMessage[]): ThreadTokenUsage {
+  const usage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+
+  for (const msg of messages) {
     if (msg.type === 'ai' && msg.usage_metadata) {
-      return {
-        inputTokens: msg.usage_metadata.input_tokens,
-        outputTokens: msg.usage_metadata.output_tokens,
-        totalTokens: msg.usage_metadata.total_tokens
-      };
+      usage.inputTokens += msg.usage_metadata.input_tokens;
+      usage.outputTokens += msg.usage_metadata.output_tokens;
+      usage.totalTokens += msg.usage_metadata.total_tokens;
     }
   }
 
-  return { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+  return usage;
 }
 
 export async function handleChatMessage(
@@ -93,7 +90,7 @@ export async function handleChatMessage(
       const stateValues = (currentState as Record<string, unknown>).values || {};
       const rawMessages = (stateValues as Record<string, unknown>).messages || [];
       const messages = mapRawMessages(rawMessages as unknown[]);
-      const totalUsage = getLatestTokenUsage(messages);
+      const totalUsage = getCumulativeTokenUsage(messages);
 
       const screenshots = await StorageService.getScreenshots(config.configurable.thread_id);
 
@@ -140,7 +137,7 @@ export async function handleChatMessage(
   // Generate mapped messages
   const rawMessages = result.messages || [];
   const messages = mapRawMessages(rawMessages);
-  const totalUsage = getLatestTokenUsage(messages);
+  const totalUsage = getCumulativeTokenUsage(messages);
 
   const screenshots = await StorageService.getScreenshots(config.configurable.thread_id);
 

@@ -1,46 +1,28 @@
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatOllama } from '@langchain/ollama';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import type { LLMConfig } from './types';
+import { llmRegistry } from './registry';
+import { OpenAIProvider } from './providers/openai-provider';
+import { OllamaProvider } from './providers/ollama-provider';
 
-export interface LLMConfig {
-  provider: 'openai' | 'anthropic' | 'google' | 'ollama' | string;
-  apiKey: string;
-  modelName?: string;
-  baseUrl?: string;
-  temperature?: number;
-  topP?: number;
-}
+// Register built-in providers
+llmRegistry.register(new OpenAIProvider());
+llmRegistry.register(new OllamaProvider());
 
 export class LLMFactory {
+  /**
+   * Creates an LLM model instance using the registered providers.
+   * @param config Configuration for the LLM
+   * @returns BaseChatModel instance
+   * @throws {UnsupportedProviderError} If the provider is not registered
+   * @throws {LLMInitializationError} If the provider fails to initialize the model
+   */
   static createModel(config: LLMConfig): BaseChatModel {
-    switch (config.provider) {
-      case 'openai':
-      case 'openai-compatible':
-        return new ChatOpenAI({
-          apiKey: config.apiKey,
-          modelName: config.modelName,
-          configuration: {
-            baseURL: config.baseUrl
-          },
-          temperature: config.temperature ?? 0,
-          topP: config.topP ?? 1,
-          streaming: true
-        });
-      case 'ollama': {
-        return new ChatOllama({
-          model: config.modelName,
-          baseUrl: config.baseUrl,
-          temperature: config.temperature ?? 0,
-          topP: config.topP ?? 1
-        });
-      }
-      // Future expansion
-      case 'anthropic':
-        throw new Error('Anthropic not yet supported');
-      case 'google':
-        throw new Error('Google not yet supported');
-      default:
-        throw new Error(`Unsupported provider: ${config.provider}`);
-    }
+    return llmRegistry.createModel(config);
   }
 }
+
+// Re-export types and interfaces for external use
+export type { LLMConfig } from './types';
+export type { ILLMProvider } from './provider-interface';
+export { LLMRegistry, llmRegistry } from './registry';
+export * from './errors';

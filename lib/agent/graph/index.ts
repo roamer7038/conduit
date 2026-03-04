@@ -9,7 +9,8 @@ import { getAgentMiddlewares } from '../middlewares';
 import { getAllToolNames } from '../tools/tool-meta';
 import { DEFAULT_SYSTEM_PROMPT } from '../default-system-prompt';
 
-import { StorageService } from '../../services/storage/storage-service';
+import { AgentConfigRepository } from '../../services/storage/repositories/agent-config-repository';
+import { McpServerRepository } from '../../services/storage/repositories/mcp-server-repository';
 import type { AgentSettingsConfig, GraphAgentConfig } from '../../types/agent';
 
 /** Keeps a reference to the active MCP client so it can be closed on re-init */
@@ -39,7 +40,7 @@ export async function createLangGraphAgent(config: GraphAgentConfig) {
   const allBrowserTools = createBrowserTools();
 
   // Get agent settings to know which tools are enabled
-  const agentSettings = await StorageService.getActiveAgentConfig();
+  const agentSettings = await AgentConfigRepository.getActiveConfig();
   const enabledBrowserTools = agentSettings?.enabledTools || getAllToolNames();
   const enabledMcpServers = agentSettings?.enabledMcpServers || [];
   const disabledMcpTools = agentSettings?.disabledMcpTools || [];
@@ -49,8 +50,8 @@ export async function createLangGraphAgent(config: GraphAgentConfig) {
   console.log(`[Agent Setup] Model: ${config.modelName || 'gpt-5'}`);
   console.log(`[Agent Setup] Filtered Browser Tools: ${browserTools.length} enabled`);
 
-  // 3. Initialize Remote MCP Tools
-  const mcpServers = await StorageService.getMcpServers();
+  let formattedTools: DynamicStructuredTool[] = [];
+  const mcpServers = await McpServerRepository.getAll();
   const { tools: mcpTools, client: mcpClient } = await createMcpTools(mcpServers, enabledMcpServers);
   activeMcpClient = mcpClient;
 

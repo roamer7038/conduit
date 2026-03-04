@@ -1,7 +1,8 @@
 // hooks/use-model-selection.ts
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { StorageService } from '@/lib/services/storage/storage-service';
+import { AgentConfigRepository } from '@/lib/services/storage/repositories/agent-config-repository';
+import { LlmProviderRepository } from '@/lib/services/storage/repositories/llm-provider-repository';
 import { MessageBus } from '@/lib/services/message/message-bus';
 import { getCachedModels, saveCacheWithMeta } from '@/lib/agent/model-cache';
 
@@ -13,8 +14,8 @@ export function useModelSelection(providerId?: string) {
     async (forceRefresh = false) => {
       setModelsLoading(true);
       try {
-        const agentConfig = await StorageService.getActiveAgentConfig();
-        const providers = await StorageService.getLlmProviders();
+        const agentConfig = await AgentConfigRepository.getActiveConfig();
+        const providers = await LlmProviderRepository.getAll();
 
         // We now need to look at the providerId passed, normally we take it from param, or from Agent Settings
         // If we are configuring the agent settings, we pass the providerId.

@@ -4,7 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { SystemMessage } from '@langchain/core/messages';
 import type { ChatMessageResponse } from '@/lib/types/message';
 import type { ThreadTokenUsage } from '@/lib/types/message';
-import { StorageService } from '@/lib/services/storage/storage-service';
+import { AgentConfigRepository } from '@/lib/services/storage/repositories/agent-config-repository';
+import { ThreadRepository } from '@/lib/services/storage/repositories/thread-repository';
+import { ScreenshotRepository } from '@/lib/services/storage/repositories/screenshot-repository';
 import { mapRawMessages } from '@/lib/agent/message-mapper';
 import type { MappedMessage } from '@/lib/agent/message-mapper';
 import type { AgentExecutorType, ChatRequestMessage } from '@/lib/types/agent';
@@ -42,11 +44,13 @@ export async function handleChatMessage(
   const actualThreadId = config.configurable.thread_id;
 
   // Load recursionLimit from agent settings
-  const agentSettings = await StorageService.getActiveAgentConfig();
+  const agentSettings = await AgentConfigRepository.getActiveConfig();
   const recursionLimit = agentSettings?.recursionLimit || DEFAULT_RECURSION_LIMIT;
 
-  // Save as active thread
-  await StorageService.setLastActiveThreadId(actualThreadId);
+  // Update last active thread ID globally
+  if (actualThreadId) {
+    await ThreadRepository.setLastActiveId(actualThreadId);
+  }
 
   if (port) {
     const abortController = new AbortController();
@@ -64,9 +68,10 @@ export async function handleChatMessage(
 
       for await (const { event, name, data } of eventStream) {
         if (event === 'on_chain_start' && name) {
-          console.log(`[LangGraph Step] 🟢 Node Start: ${name}`);
+          console.group(`[LangGraph Step] 🟢 Node Start: ${name}`);
         } else if (event === 'on_chain_end' && name) {
           console.log(`[LangGraph Step] 🔴 Node End: ${name}`);
+          console.groupEnd();
         } else if (event === 'on_chat_model_stream' && data.chunk) {
           getActivePort()?.postMessage({
             type: 'stream_chunk',
@@ -94,11 +99,11 @@ export async function handleChatMessage(
       }
 
       // Retrieve screenshot data URL if captured during this turn
-      const screenshotDataUrl = await StorageService.getLastScreenshotDataUrl();
-      if (screenshotDataUrl) {
-        // Save screenshot to thread
-        await StorageService.saveScreenshot(actualThreadId, screenshotDataUrl);
-        await StorageService.removeLastScreenshotDataUrl();
+      const screenshotDataUrl = await ScreenshotRepository.getLastDataUrl();
+      if (screenshotDataUrl && actualThreadId) {
+        // Create context attachment format
+        await ScreenshotRepository.saveForThread(actualThreadId, screenshotDataUrl);
+        await ScreenshotRepository.removeLastDataUrl();
       }
 
       // We need the final state to return everything structured properly.
@@ -108,7 +113,7 @@ export async function handleChatMessage(
       const messages = mapRawMessages(rawMessages as unknown[]);
       const totalUsage = getLatestTokenUsage(messages);
 
-      const screenshots = await StorageService.getScreenshots(actualThreadId);
+      const screenshots = await ScreenshotRepository.getForThread(actualThreadId);
 
       getActivePort()?.postMessage({
         type: 'stream_end',
@@ -117,7 +122,6 @@ export async function handleChatMessage(
           messages,
           screenshots,
           threadId: actualThreadId,
-          screenshotDataUrl: screenshotDataUrl || undefined,
           totalUsage
         }
       });
@@ -150,11 +154,11 @@ export async function handleChatMessage(
   const lastMessage = result.messages[result.messages.length - 1];
 
   // Retrieve screenshot data URL if captured during this turn
-  const screenshotDataUrl = await StorageService.getLastScreenshotDataUrl();
+  const screenshotDataUrl = await ScreenshotRepository.getLastDataUrl();
+  let screenshotsToProcess: string[] = [];
   if (screenshotDataUrl) {
-    // Save screenshot to thread
-    await StorageService.saveScreenshot(actualThreadId, screenshotDataUrl);
-    await StorageService.removeLastScreenshotDataUrl();
+    await ScreenshotRepository.saveForThread(actualThreadId, screenshotDataUrl);
+    await ScreenshotRepository.removeLastDataUrl();
   }
 
   // Generate mapped messages
@@ -162,14 +166,13 @@ export async function handleChatMessage(
   const messages = mapRawMessages(rawMessages);
   const totalUsage = getLatestTokenUsage(messages);
 
-  const screenshots = await StorageService.getScreenshots(actualThreadId);
+  const screenshots = await ScreenshotRepository.getForThread(actualThreadId);
 
   return {
     response: lastMessage.content,
     messages,
     screenshots,
     threadId: actualThreadId,
-    screenshotDataUrl: screenshotDataUrl || undefined,
     totalUsage
   };
 }

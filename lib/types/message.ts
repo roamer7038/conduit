@@ -37,7 +37,6 @@ export interface ThreadHistory {
 export interface ChatMessageResponse {
   response: string;
   threadId: string;
-  screenshotDataUrl?: string;
   messages?: unknown[];
   screenshots?: string[];
   totalUsage?: ThreadTokenUsage;

@@ -2,7 +2,8 @@
 /// <reference types="chrome"/>
 import { createLangGraphAgent } from '@/lib/agent/graph';
 import { MCP_SERVERS_STORAGE_KEY } from '@/lib/agent/tools/mcp-types';
-import { StorageService } from '@/lib/services/storage/storage-service';
+import { AgentConfigRepository } from '@/lib/services/storage/repositories/agent-config-repository';
+import { LlmProviderRepository } from '@/lib/services/storage/repositories/llm-provider-repository';
 import { STORAGE_KEYS } from '@/lib/services/storage/storage-keys';
 import { CryptoService } from '@/lib/services/crypto/crypto-service';
 import { handleChatMessage, activeStreams } from './handlers/chat-handler';
@@ -19,8 +20,8 @@ export default defineBackground(() => {
 
   // Initialize agent when config changes or on startup if config exists
   const initAgent = async () => {
-    const agentConfig = await StorageService.getActiveAgentConfig();
-    const providers = await StorageService.getLlmProviders();
+    const agentConfig = await AgentConfigRepository.getActiveConfig();
+    const providers = await LlmProviderRepository.getAll();
 
     if (agentConfig?.providerId) {
       const provider = providers.find((p) => p.id === agentConfig.providerId);
@@ -139,12 +140,13 @@ export default defineBackground(() => {
           }
 
           case 'fetch_models': {
-            const agentConfig = await StorageService.getActiveAgentConfig();
+            const agentConfig = await AgentConfigRepository.getActiveConfig();
             if (!agentConfig?.providerId) {
               sendResponse({ error: 'No LLM Provider selected in Agent Settings' });
               return;
             }
-            const providers = await StorageService.getLlmProviders();
+            // Get LLM providers from storage
+            const providers = await LlmProviderRepository.getAll();
             const provider = providers.find((p) => p.id === agentConfig.providerId);
             if (!provider) {
               sendResponse({ error: 'Selected LLM Provider not found' });

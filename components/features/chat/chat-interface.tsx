@@ -34,6 +34,7 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
   const isAutoScrolling = useRef<'up' | 'down' | false>(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -189,7 +190,7 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
                 <div key={idx} className='flex justify-start mb-4'>
                   <button
                     className='block rounded-lg overflow-hidden border shadow-sm hover:opacity-90 transition-opacity cursor-zoom-in max-w-[85%] text-left'
-                    onClick={() => chrome.tabs.create({ url: msg.content })}
+                    onClick={() => setSelectedImage(msg.content)}
                     title='クリックで原寸表示'
                     type='button'
                   >
@@ -360,6 +361,21 @@ export function ChatInterface({ onSettings, onHistory }: { onSettings: () => voi
           </div>
         </div>
       </div>
+
+      {/* Screenshot fullscreen modal */}
+      {selectedImage && (
+        <div
+          className='fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out'
+          onClick={() => setSelectedImage(null)}
+        >
+          <img
+            alt='Screenshot full size'
+            className='max-w-[95%] max-h-[95%] object-contain rounded-lg shadow-2xl'
+            src={selectedImage}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </SidePanelLayout>
   );
 }

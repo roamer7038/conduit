@@ -1,6 +1,6 @@
 // entrypoints/background/handlers/mcp-handler.ts
 import { testMcpConnection } from '@/lib/agent/tools/mcp';
-import { StorageService } from '@/lib/services/storage/storage-service';
+import { McpServerRepository } from '@/lib/services/storage/repositories/mcp-server-repository';
 import type { McpServerConfig, TestResult, McpToolInfo } from '@/lib/types/agent';
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
@@ -18,7 +18,7 @@ export async function handleTestMcpConnection(server: McpServerConfig): Promise<
  * Connects temporarily, discovers tools, then disconnects.
  */
 export async function handleFetchMcpTools(serverId: string): Promise<{ tools: McpToolInfo[] }> {
-  const servers = await StorageService.getMcpServers();
+  const servers = await McpServerRepository.getAll();
   const server = servers.find((s) => s.id === serverId);
   if (!server) {
     throw new Error(`MCP server not found: ${serverId}`);

@@ -1,7 +1,8 @@
 // entrypoints/background/handlers/thread-handler.ts
 /// <reference types="chrome"/>
 import { ChromeStorageCheckpointer } from '@/lib/agent/checkpointer';
-import { StorageService } from '@/lib/services/storage/storage-service';
+import { ThreadRepository } from '@/lib/services/storage/repositories/thread-repository';
+import { ScreenshotRepository } from '@/lib/services/storage/repositories/screenshot-repository';
 import { mapRawMessages } from '@/lib/agent/message-mapper';
 import type { MappedMessage } from '@/lib/agent/message-mapper';
 import type { Thread, ThreadHistory } from '@/lib/types/message';
@@ -39,7 +40,7 @@ export async function handleGetThreadHistory(
   }
 
   // Get screenshots for this thread
-  const screenshots = await StorageService.getScreenshots(threadId);
+  const screenshots = await ScreenshotRepository.getForThread(threadId);
 
   return { messages, screenshots, totalUsage };
 }
@@ -49,13 +50,13 @@ export async function handleDeleteThread(threadId: string): Promise<{ success: t
   await checkpointer.deleteThread(threadId);
 
   // If deleting active thread, clear it
-  const lastActiveThreadId = await StorageService.getLastActiveThreadId();
+  const lastActiveThreadId = await ThreadRepository.getLastActiveId();
   if (lastActiveThreadId === threadId) {
-    await StorageService.removeLastActiveThreadId();
+    await ThreadRepository.removeLastActiveId();
   }
 
-  // Remove screenshots
-  await StorageService.removeScreenshots(threadId);
+  // Related screenshots cleanup
+  await ScreenshotRepository.removeForThread(threadId);
 
   return { success: true };
 }

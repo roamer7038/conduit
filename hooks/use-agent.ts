@@ -122,12 +122,6 @@ export function useAgent() {
         } else {
           setMessages((prev) => [...prev, { role: 'assistant', content: msg.response.response || '', type: 'text' }]);
         }
-        if (msg.response.screenshotDataUrl) {
-          setMessages((prev) => [
-            ...prev,
-            { role: 'assistant', content: msg.response.screenshotDataUrl, type: 'image' }
-          ]);
-        }
         if (msg.response.totalUsage) {
           setTokenUsage(msg.response.totalUsage);
         }

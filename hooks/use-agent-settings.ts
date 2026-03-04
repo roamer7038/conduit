@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { StorageService } from '@/lib/services/storage/storage-service';
+import { AgentConfigRepository } from '@/lib/services/storage/repositories/agent-config-repository';
 import { getAllToolNames } from '@/lib/agent/tools/tool-meta';
 import type { AgentSettingsConfig } from '@/lib/types/agent';
 import { DEFAULT_AGENT_ID } from '@/lib/types/agent';
@@ -30,7 +30,12 @@ export function useAgentSettings(agentId?: string) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   const loadConfig = useCallback(async () => {
-    const savedConfig = await StorageService.getAgentConfig(resolvedAgentId);
+    let resolvedAgentId = agentId;
+    if (!resolvedAgentId) {
+      resolvedAgentId = (await AgentConfigRepository.getActiveId()) || DEFAULT_AGENT_ID;
+      await AgentConfigRepository.setActiveId(resolvedAgentId);
+    }
+    const savedConfig = await AgentConfigRepository.getById(resolvedAgentId);
     if (savedConfig) {
       setConfig(savedConfig);
     } else {
@@ -64,8 +69,8 @@ export function useAgentSettings(agentId?: string) {
       const nextConfig = { ...prev, ...updates };
       // React state update is synchronous within the functional update conceptually,
       // but we should trigger the storage save outside or carefully.
-      // To ensure consistency, we save the fully computed nextConfig.
-      StorageService.saveAgentConfig(nextConfig).catch((err) => {
+      // ensure consistency, we save the fully computed nextConfig.
+      AgentConfigRepository.save(nextConfig).catch((err) => {
         console.error('[useAgentSettings] Failed to save config:', err);
       });
       return nextConfig;
@@ -86,7 +91,7 @@ export function useAgentSettings(agentId?: string) {
       }
       const newTools = Array.from(toolSet);
       const nextConfig = { ...prev, enabledTools: newTools };
-      StorageService.saveAgentConfig(nextConfig).catch(console.error);
+      AgentConfigRepository.save(nextConfig).catch(console.error);
       return nextConfig;
     });
   };
@@ -101,7 +106,7 @@ export function useAgentSettings(agentId?: string) {
       }
       const newServers = Array.from(serverSet);
       const nextConfig = { ...prev, enabledMcpServers: newServers };
-      StorageService.saveAgentConfig(nextConfig).catch(console.error);
+      AgentConfigRepository.save(nextConfig).catch(console.error);
       return nextConfig;
     });
   };
@@ -116,7 +121,7 @@ export function useAgentSettings(agentId?: string) {
       }
       const newDisabled = Array.from(disabledSet);
       const nextConfig = { ...prev, disabledMcpTools: newDisabled };
-      StorageService.saveAgentConfig(nextConfig).catch(console.error);
+      AgentConfigRepository.save(nextConfig).catch(console.error);
       return nextConfig;
     });
   };
@@ -135,7 +140,7 @@ export function useAgentSettings(agentId?: string) {
       }
       const newMiddlewares = Array.from(middlewareSet);
       const nextConfig = { ...prev, enabledMiddlewares: newMiddlewares };
-      StorageService.saveAgentConfig(nextConfig).catch(console.error);
+      AgentConfigRepository.save(nextConfig).catch(console.error);
       return nextConfig;
     });
   };
@@ -147,7 +152,7 @@ export function useAgentSettings(agentId?: string) {
         ...settings
       };
       const nextConfig = { ...prev, middlewareSettings: newSettings };
-      StorageService.saveAgentConfig(nextConfig).catch(console.error);
+      AgentConfigRepository.save(nextConfig).catch(console.error);
       return nextConfig;
     });
   };

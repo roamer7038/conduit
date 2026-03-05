@@ -8,31 +8,14 @@ import { AgentConfigRepository } from '@/lib/services/storage/repositories/agent
 import { ThreadRepository } from '@/lib/services/storage/repositories/thread-repository';
 import { ScreenshotRepository } from '@/lib/services/storage/repositories/screenshot-repository';
 import { mapRawMessages } from '@/lib/agent/message-mapper';
+import { getLatestTokenUsage } from '@/lib/agent/token-calculator';
+import { processStreamEvents } from '@/lib/agent/stream-processor';
 import type { MappedMessage } from '@/lib/agent/message-mapper';
 import type { AgentExecutorType, ChatRequestMessage } from '@/lib/types/agent';
 
 export const activeStreams = new Map<string, { abortController: AbortController; port: chrome.runtime.Port | null }>();
 
 const DEFAULT_RECURSION_LIMIT = 100;
-
-/**
- * Extracts token usage from the latest AI message in the thread.
- */
-function getLatestTokenUsage(messages: MappedMessage[]): ThreadTokenUsage {
-  const usage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
-
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
-    if (msg.type === 'ai' && msg.usage_metadata) {
-      usage.inputTokens = msg.usage_metadata.input_tokens;
-      usage.outputTokens = msg.usage_metadata.output_tokens;
-      usage.totalTokens = msg.usage_metadata.total_tokens;
-      break;
-    }
-  }
-
-  return usage;
-}
 
 export async function handleChatMessage(
   request: ChatRequestMessage,
@@ -66,36 +49,7 @@ export async function handleChatMessage(
         { version: 'v2', recursionLimit, signal: abortController.signal, ...config }
       );
 
-      for await (const { event, name, data } of eventStream) {
-        if (event === 'on_chain_start' && name) {
-          console.log(`[LangGraph Step] 🟢 Node Start: ${name}`, data);
-        } else if (event === 'on_chain_end' && name) {
-          console.log(`[LangGraph Step] 🔴 Node End: ${name}`, data);
-        } else if (event === 'on_chat_model_stream' && data.chunk) {
-          getActivePort()?.postMessage({
-            type: 'stream_chunk',
-            chunk: {
-              content: data.chunk.content || '',
-              tool_call_chunks: data.chunk.tool_call_chunks || [],
-              additional_kwargs: data.chunk.additional_kwargs || {}
-            }
-          });
-        } else if (event === 'on_tool_start') {
-          console.log(`[LangGraph Step] 🛠️ Tool Start: ${name}`, data.input);
-          getActivePort()?.postMessage({
-            type: 'tool_start',
-            name: name,
-            input: data.input
-          });
-        } else if (event === 'on_tool_end') {
-          console.log(`[LangGraph Step] ✅ Tool End: ${name}`);
-          getActivePort()?.postMessage({
-            type: 'tool_end',
-            name: name,
-            output: data.output
-          });
-        }
-      }
+      await processStreamEvents(eventStream, getActivePort());
 
       // Retrieve screenshot data URL if captured during this turn
       const screenshotDataUrl = await ScreenshotRepository.getLastDataUrl();

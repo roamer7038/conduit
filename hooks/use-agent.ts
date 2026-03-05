@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useAgentStore } from '@/lib/store/agent-store';
 
 export function useAgent() {
@@ -9,42 +9,21 @@ export function useAgent() {
 
   const sendMessage = useAgentStore((state) => state.sendMessage);
   const startNewThread = useAgentStore((state) => state.startNewThread);
-  const setThreadId = useAgentStore((state) => state.setThreadId);
+  const switchThread = useAgentStore((state) => state.switchThread);
   const abortGeneration = useAgentStore((state) => state.abortGeneration);
-  const loadThreadHistory = useAgentStore((state) => state.loadThreadHistory);
   const initializeLastActiveThread = useAgentStore((state) => state.initializeLastActiveThread);
-
-  const skipHistoryFetchRef = useRef(false);
-
-  // Load message history when threadId changes
-  useEffect(() => {
-    if (threadId) {
-      if (skipHistoryFetchRef.current) {
-        skipHistoryFetchRef.current = false;
-        return;
-      }
-      loadThreadHistory(threadId);
-    } else {
-      useAgentStore.setState({ messages: [], tokenUsage: null });
-    }
-  }, [threadId, loadThreadHistory]);
 
   // Initial load of last active thread
   useEffect(() => {
     initializeLastActiveThread();
   }, [initializeLastActiveThread]);
 
-  const handleSendMessage = (content: string) => {
-    skipHistoryFetchRef.current = true;
-    return sendMessage(content);
-  };
-
   return {
     messages,
     isLoading,
-    sendMessage: handleSendMessage,
+    sendMessage,
     startNewThread,
-    setThreadId,
+    setThreadId: switchThread,
     tokenUsage,
     abortGeneration
   };

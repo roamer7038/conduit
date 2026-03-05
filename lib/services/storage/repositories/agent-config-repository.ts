@@ -2,9 +2,10 @@ import { BaseStorage, StorageError } from '../core/base-storage';
 import { STORAGE_KEYS } from '../storage-keys';
 import { AgentSettingsConfigSchema, type AgentSettingsConfig } from '@/lib/types/agent';
 import { z } from 'zod';
+import type { IAgentConfigRepository } from '../interfaces';
 
-export class AgentConfigRepository {
-  static async getAll(): Promise<AgentSettingsConfig[]> {
+export const AgentConfigRepository: IAgentConfigRepository = {
+  getAll: async (): Promise<AgentSettingsConfig[]> => {
     try {
       const configs = await BaseStorage.get<unknown>(STORAGE_KEYS.AGENT_CONFIGS);
       if (!configs) return [];
@@ -18,34 +19,34 @@ export class AgentConfigRepository {
     } catch (error) {
       throw new StorageError('Failed to get Agent Configs', error);
     }
-  }
+  },
 
-  static async getById(agentId: string): Promise<AgentSettingsConfig | null> {
+  getById: async (agentId: string): Promise<AgentSettingsConfig | null> => {
     try {
       const configs = await AgentConfigRepository.getAll();
       return configs.find((c) => c.agentId === agentId) || null;
     } catch (error) {
       throw new StorageError('Failed to get Agent Config by ID', error);
     }
-  }
+  },
 
-  static async getActiveId(): Promise<string | null> {
+  getActiveId: async (): Promise<string | null> => {
     try {
       return await BaseStorage.get<string>(STORAGE_KEYS.ACTIVE_AGENT_ID);
     } catch (error) {
       throw new StorageError('Failed to get active agent ID', error);
     }
-  }
+  },
 
-  static async setActiveId(agentId: string): Promise<void> {
+  setActiveId: async (agentId: string): Promise<void> => {
     try {
       await BaseStorage.set(STORAGE_KEYS.ACTIVE_AGENT_ID, agentId);
     } catch (error) {
       throw new StorageError('Failed to set active agent ID', error);
     }
-  }
+  },
 
-  static async getActiveConfig(): Promise<AgentSettingsConfig | null> {
+  getActiveConfig: async (): Promise<AgentSettingsConfig | null> => {
     try {
       const activeId = await AgentConfigRepository.getActiveId();
       const configs = await AgentConfigRepository.getAll();
@@ -57,9 +58,9 @@ export class AgentConfigRepository {
     } catch (error) {
       throw new StorageError('Failed to get active Agent Config', error);
     }
-  }
+  },
 
-  static async save(config: AgentSettingsConfig): Promise<void> {
+  save: async (config: AgentSettingsConfig): Promise<void> => {
     try {
       const configs = await AgentConfigRepository.getAll();
       const idx = configs.findIndex((c) => c.agentId === config.agentId);
@@ -72,9 +73,9 @@ export class AgentConfigRepository {
     } catch (error) {
       throw new StorageError('Failed to save Agent Config', error);
     }
-  }
+  },
 
-  static async delete(agentId: string): Promise<void> {
+  delete: async (agentId: string): Promise<void> => {
     try {
       const configs = await AgentConfigRepository.getAll();
       await BaseStorage.set(
@@ -85,4 +86,4 @@ export class AgentConfigRepository {
       throw new StorageError('Failed to delete Agent Config', error);
     }
   }
-}
+};

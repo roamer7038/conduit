@@ -21,6 +21,7 @@ interface AgentState {
   setupStreamListener: (port: chrome.runtime.Port, baseMessages: Message[]) => void;
   sendMessage: (content: string) => Promise<void>;
   startNewThread: () => void;
+  switchThread: (newThreadId: string) => Promise<void>;
   abortGeneration: () => void;
   loadThreadHistory: (threadId: string) => Promise<void>;
   initializeLastActiveThread: () => Promise<void>;
@@ -156,6 +157,18 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     chrome.storage.local.remove('lastActiveThreadId');
   },
 
+  switchThread: async (newThreadId: string) => {
+    const { threadId, loadThreadHistory } = get();
+    if (threadId === newThreadId) return;
+
+    set({ threadId: newThreadId });
+    if (newThreadId) {
+      await loadThreadHistory(newThreadId);
+    } else {
+      set({ messages: [], tokenUsage: null });
+    }
+  },
+
   abortGeneration: () => {
     const { threadId, isLoading } = get();
     if (threadId && isLoading) {
@@ -188,8 +201,9 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   initializeLastActiveThread: async () => {
     const data = await chrome.storage.local.get(['lastActiveThreadId']);
     if (data.lastActiveThreadId) {
-      set({ threadId: data.lastActiveThreadId as string });
-      // The useEffect in component will trigger loadThreadHistory when threadId changes
+      const id = data.lastActiveThreadId as string;
+      set({ threadId: id });
+      await get().loadThreadHistory(id);
     }
   }
 }));

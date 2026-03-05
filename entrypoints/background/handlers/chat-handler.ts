@@ -68,10 +68,9 @@ export async function handleChatMessage(
 
       for await (const { event, name, data } of eventStream) {
         if (event === 'on_chain_start' && name) {
-          console.group(`[LangGraph Step] 🟢 Node Start: ${name}`);
+          console.log(`[LangGraph Step] 🟢 Node Start: ${name}`, data);
         } else if (event === 'on_chain_end' && name) {
-          console.log(`[LangGraph Step] 🔴 Node End: ${name}`);
-          console.groupEnd();
+          console.log(`[LangGraph Step] 🔴 Node End: ${name}`, data);
         } else if (event === 'on_chat_model_stream' && data.chunk) {
           getActivePort()?.postMessage({
             type: 'stream_chunk',

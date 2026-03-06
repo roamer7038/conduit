@@ -137,8 +137,5 @@ export const BROWSER_TOOL_META: ToolMeta[] = [
   }
 ];
 
-/** Storage key used to persist enabled tool names */
-export const TOOL_SETTINGS_STORAGE_KEY = 'enabledTools';
-
 /** Returns all tool names (= default: all enabled) */
 export const getAllToolNames = (): string[] => BROWSER_TOOL_META.map((t) => t.name);

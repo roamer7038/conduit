@@ -9,7 +9,7 @@ const CACHE_KEYS = {
 // Cache expiry time: 24 hours
 const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
-export interface ModelListCacheMeta {
+interface ModelListCacheMeta {
   apiKeyHash: string;
   baseUrl: string;
   timestamp: number;
@@ -31,7 +31,7 @@ function isModelListCacheMeta(obj: any): obj is ModelListCacheMeta {
 /**
  * Hash API key using SHA-256
  */
-export async function hashApiKey(apiKey: string): Promise<string> {
+async function hashApiKey(apiKey: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(apiKey);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);

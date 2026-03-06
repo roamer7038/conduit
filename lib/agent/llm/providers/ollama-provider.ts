@@ -15,8 +15,9 @@ export class OllamaProvider implements ILLMProvider {
         temperature: config.temperature ?? 0,
         topP: config.topP ?? 1
       });
-    } catch (error: any) {
-      throw new LLMInitializationError(this.name, error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new LLMInitializationError(this.name, message);
     }
   }
 }

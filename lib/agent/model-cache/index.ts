@@ -1,4 +1,5 @@
 // lib/agent/model-cache.ts
+import { z } from 'zod';
 
 // Cache keys as constants
 const CACHE_KEYS = {
@@ -9,24 +10,13 @@ const CACHE_KEYS = {
 // Cache expiry time: 24 hours
 const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
-interface ModelListCacheMeta {
-  apiKeyHash: string;
-  baseUrl: string;
-  timestamp: number;
-}
+const ModelListCacheMetaSchema = z.object({
+  apiKeyHash: z.string(),
+  baseUrl: z.string(),
+  timestamp: z.number()
+});
 
-/**
- * Type guard for ModelListCacheMeta
- */
-function isModelListCacheMeta(obj: any): obj is ModelListCacheMeta {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    typeof obj.apiKeyHash === 'string' &&
-    typeof obj.baseUrl === 'string' &&
-    typeof obj.timestamp === 'number'
-  );
-}
+type ModelListCacheMeta = z.infer<typeof ModelListCacheMetaSchema>;
 
 /**
  * Hash API key using SHA-256
@@ -51,11 +41,12 @@ export async function getCachedModels(apiKey: string, baseUrl: string): Promise<
       return null;
     }
 
-    // Type guard validation
-    const metaData = data[CACHE_KEYS.META];
-    if (!isModelListCacheMeta(metaData)) {
+    // Zod validation
+    const metaResult = ModelListCacheMetaSchema.safeParse(data[CACHE_KEYS.META]);
+    if (!metaResult.success) {
       return null;
     }
+    const metaData = metaResult.data;
 
     // Check cache expiry
     const isExpired = Date.now() - metaData.timestamp > CACHE_EXPIRY_MS;

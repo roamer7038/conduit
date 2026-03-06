@@ -125,7 +125,7 @@ export function ModelSelector({
                 if (typeof val === 'string' && val.trim() !== '') {
                   onModelSelect(val);
                 } else if (val && typeof val === 'object' && 'value' in val) {
-                  onModelSelect((val as any).value as string);
+                  onModelSelect(String((val as Record<string, unknown>).value));
                 }
               }}
             >

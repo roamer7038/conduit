@@ -25,8 +25,9 @@ export class OpenAIProvider implements ILLMProvider {
         topP: config.topP ?? 1,
         streaming: true
       });
-    } catch (error: any) {
-      throw new LLMInitializationError(this.name, error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new LLMInitializationError(this.name, message);
     }
   }
 }

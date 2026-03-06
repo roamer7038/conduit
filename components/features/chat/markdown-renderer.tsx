@@ -116,8 +116,8 @@ const markdownComponents: Components = {
 
     return isBlock ? (
       <SyntaxHighlighter
-        {...(rest as any)}
-        style={vscDarkPlus as any}
+        {...(rest as Record<string, unknown>)}
+        style={vscDarkPlus as Record<string, React.CSSProperties>}
         language={language || 'text'}
         PreTag='div'
         customStyle={{

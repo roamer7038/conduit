@@ -60,10 +60,11 @@ export function useMcpServers() {
         ...prev,
         [server.id]: result
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setTestResults((prev) => ({
         ...prev,
-        [server.id]: { success: false, error: error.message }
+        [server.id]: { success: false, error: errorMessage }
       }));
     } finally {
       setTestingServerId(null);

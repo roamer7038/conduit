@@ -6,28 +6,39 @@ import type { Message } from '@/lib/types/message';
 // ---------------------------------------------------------------------------
 
 const BaseRawMessageSchema = z.object({
-  id: z.any().optional(),
+  id: z.unknown().optional(),
   type: z.string().optional(),
-  content: z.any(),
-  additional_kwargs: z.record(z.string(), z.any()).optional(),
+  content: z.unknown(),
+  additional_kwargs: z.record(z.string(), z.unknown()).optional(),
   name: z.string().optional()
 });
 
 const AiRawMessageSchema = BaseRawMessageSchema.extend({
-  tool_calls: z.array(z.record(z.string(), z.any())).optional(),
-  usage_metadata: z.record(z.string(), z.any()).optional()
+  tool_calls: z.array(z.record(z.string(), z.unknown())).optional(),
+  usage_metadata: z.record(z.string(), z.unknown()).optional()
 });
+
+/** Parsed base message shape from Zod */
+type BaseRawMessage = z.infer<typeof BaseRawMessageSchema>;
+
+/** Parsed AI message shape from Zod */
+type AiRawMessage = z.infer<typeof AiRawMessageSchema>;
+
+/** Raw message input before Zod parsing — may have LangChain runtime methods */
+interface RawMessageInput extends Record<string, unknown> {
+  getType?: () => string;
+}
 
 // ---------------------------------------------------------------------------
 // Helper Functions
 // ---------------------------------------------------------------------------
 
-function extractMessageType(m: any): string | null {
+function extractMessageType(m: RawMessageInput): string | null {
   if (typeof m.getType === 'function') {
     return m.getType();
   }
   if (m.type) {
-    return m.type;
+    return m.type as string;
   }
   const idStr = String(m.id || '');
   if (idStr.includes('AI')) return 'ai';
@@ -35,7 +46,7 @@ function extractMessageType(m: any): string | null {
   return null;
 }
 
-function parseContent(content: any): string {
+function parseContent(content: unknown): string {
   if (typeof content === 'string') return content;
   return JSON.stringify(content);
 }
@@ -44,7 +55,7 @@ function parseContent(content: any): string {
 // Message Handlers
 // ---------------------------------------------------------------------------
 
-function handleHumanMessage(m: any): Message[] {
+function handleHumanMessage(m: RawMessageInput): Message[] {
   const parsed = BaseRawMessageSchema.safeParse(m);
   if (!parsed.success) return [];
   const { content, additional_kwargs } = parsed.data;
@@ -56,7 +67,7 @@ function handleHumanMessage(m: any): Message[] {
   return [{ role: 'user', content: strContent, type: 'text' }];
 }
 
-function handleAiMessage(m: any): Message[] {
+function handleAiMessage(m: RawMessageInput): Message[] {
   const parsed = AiRawMessageSchema.safeParse(m);
   if (!parsed.success) return [];
   const { content, additional_kwargs, tool_calls, usage_metadata } = parsed.data;
@@ -95,7 +106,7 @@ function handleAiMessage(m: any): Message[] {
   return msgs;
 }
 
-function handleToolMessage(m: any): Message[] {
+function handleToolMessage(m: RawMessageInput): Message[] {
   const parsed = BaseRawMessageSchema.safeParse(m);
   if (!parsed.success) return [];
   const { content, name } = parsed.data;
@@ -110,7 +121,7 @@ function handleToolMessage(m: any): Message[] {
   ];
 }
 
-function handleSystemOrErrorMessage(m: any): Message[] {
+function handleSystemOrErrorMessage(m: RawMessageInput): Message[] {
   const parsed = BaseRawMessageSchema.safeParse(m);
   if (!parsed.success) return [];
 
@@ -129,18 +140,18 @@ function handleSystemOrErrorMessage(m: any): Message[] {
 
 export function parseMessages(rawMessages: Record<string, unknown>[]): Message[] {
   return rawMessages.flatMap((m) => {
-    const msgType = extractMessageType(m);
+    const msgType = extractMessageType(m as RawMessageInput);
 
     switch (msgType) {
       case 'human':
-        return handleHumanMessage(m);
+        return handleHumanMessage(m as RawMessageInput);
       case 'ai':
-        return handleAiMessage(m);
+        return handleAiMessage(m as RawMessageInput);
       case 'tool':
-        return handleToolMessage(m);
+        return handleToolMessage(m as RawMessageInput);
       case 'system':
       case 'error':
-        return handleSystemOrErrorMessage(m);
+        return handleSystemOrErrorMessage(m as RawMessageInput);
       default:
         // Unknown types are ignored or could be logged
         return [];

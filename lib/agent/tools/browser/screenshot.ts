@@ -2,6 +2,7 @@
 /// <reference types="chrome" />
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
+import { ScreenshotRepository } from '@/lib/services/storage/repositories/screenshot-repository';
 
 export function createScreenshotTool(): DynamicStructuredTool {
   return new DynamicStructuredTool({
@@ -13,7 +14,7 @@ export function createScreenshotTool(): DynamicStructuredTool {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId!, { format: 'png' });
       // LLMのコンテキストに包めず、ストレージに一時保存してUIでプレビューする
-      await chrome.storage.local.set({ lastScreenshotDataUrl: dataUrl });
+      await ScreenshotRepository.setLastDataUrl(dataUrl);
       return `Screenshot captured (${tab.title ?? tab.url}). A preview will appear in the chat.`;
     }
   });
